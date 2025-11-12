@@ -4,22 +4,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { type PositionUpdate } from '~/lib/aircraft-store';
 
-interface PositionUpdate {
-  id: string;
-  callsign: string;
-  type: string;
-  lat: number;
-  lon: number;
-  alt: number;
-  heading: number;
-  speed: number;
-  arrival: string;
-  ts: number;
-  flightNo: string;
-  departure: string;
-  squawk: string;
-}
-
 interface MapComponentProps {
   aircrafts: PositionUpdate[];
   airports: Airport[];

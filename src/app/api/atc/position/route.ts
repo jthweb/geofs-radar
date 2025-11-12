@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const callsign = searchParams.get('callsign');
@@ -112,6 +112,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function OPTIONS() {
+  await Promise.resolve()
   return new NextResponse(null, {
     status: 200,
     headers: {

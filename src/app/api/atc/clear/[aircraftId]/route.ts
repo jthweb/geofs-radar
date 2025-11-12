@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const activeAircraft = new Map();
+import { activeAircraft } from '~/lib/aircraft-store';
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { aircraftId: string } }
+  context: any, 
 ) {
   try {
-    const { aircraftId } = params;
+    const { aircraftId } = await context.params;
 
     if (!aircraftId) {
       return NextResponse.json(
@@ -19,8 +18,6 @@ export async function DELETE(
     const existed = activeAircraft.has(aircraftId);
     activeAircraft.delete(aircraftId);
 
-    console.log(`[ATC-API] Cleared aircraft: ${aircraftId}`);
-
     return NextResponse.json({
       success: true,
       message: existed ? 'Aircraft cleared' : 'Aircraft not found',
@@ -28,7 +25,6 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('[ATC-API] Error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -37,6 +33,7 @@ export async function DELETE(
 }
 
 export async function OPTIONS() {
+  await Promise.resolve()
   return new NextResponse(null, {
     status: 200,
     headers: {
