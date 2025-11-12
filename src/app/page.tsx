@@ -79,27 +79,6 @@ export default function ATCPage() {
           <DynamicMapComponent aircrafts={aircrafts} airports={airports} />
         )}
       </div>
-      
-      <div style={{ 
-        position: 'absolute', 
-        top: 10, 
-        left: 10, 
-        padding: '10px', 
-        background: 'rgba(255, 255, 255, 0.8)', 
-        color: '#333',
-        borderRadius: '5px',
-        zIndex: 1000, 
-        boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
-      }}>
-        <h1 style={{ fontSize: '1.2em', margin: 0 }}>ATC Radar</h1>
-        <p style={{ fontSize: '0.8em', margin: '5px 0 0 0' }}>Active Aircraft: {isLoading ? '...' : aircrafts.length}</p>
-        {error && (
-          <div style={{ color: 'red', fontSize: '0.7em', marginTop: '5px' }}>
-            Error: {error}
-          </div>
-        )}
-      </div>
-
     </div>
   );
 }
