@@ -38,7 +38,7 @@ const getAircraftDivIcon = (aircraft: PositionUpdate) => {
   const iconUrl = 'https://i.ibb.co/6cNhyMMj/1.png'; 
   const planeSize = 30; 
   const tagHeight = 45; 
-  const tagWidth = 140; 
+  const tagWidth = 150; 
   const tagHorizontalSpacing = 10; 
 
   const iconWidth = planeSize + tagHorizontalSpacing + tagWidth;
