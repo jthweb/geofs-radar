@@ -229,6 +229,7 @@
     if (now - lastViewerCheckTime > VIEWER_CHECK_INTERVAL) {
       await checkForActiveViewers();
       lastViewerCheckTime = now;
+      updateStatus();
     }
 
     if (!hasActiveViewers) {
