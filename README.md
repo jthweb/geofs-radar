@@ -1,29 +1,33 @@
-# Create T3 App
+## GeoFS Radar 
+A Flightradar24-type radar display for the GeoFS. This is a fork of the original [GeoFS Radar](https://github.com/seabus0316/GeoFS-flightradar/) project. This that I have changed from the original project: 
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+- Originally, there were too many options to render the map which was, A, confusing and B, unnecessary.
+- the original project made it a bit difficult to see plane's heading, its fixed on this project.
+- There was no way to just pick a plane, you had to zoom in to see and choose a flight to track, this project makes it easy to just click on a flight and see every detail of it. 
+- The original project uses MSL rather than AGL, this project uses AGL. AGL is more accurate especially when ATCing. 
+- Original did not have detailed Flight plan, this project does. By "detail" i mean, this project shows the speed and altitude at every waypoint. 
 
-## What's next? How do I make an app with this?
+**Other Additions:**
+- I added a "Heading Mode" that allows users to calculate heading from point A to point B. Making it easy for controllers to calculate headings. 
+- Airports ~~are~~ can be highlighted with a marker. 
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+## Installation 
+- Install the mod: https://mansoorbarri.com/radar
+- View the radar: https://geofs-radar.vercel.app/
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## Usage
+- Once you install the mod, you will see a popup on the right side of your screen, looks something like this: 
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+![image of the popup on GeoFS](/.github/images/popup.png)
+- Enter the ICAO of departure/arrival aiports, Callsign and Squawk, and click "Save".
+- You can close the popup by pressing "W" on your keyboard. 
 
-## Learn More
+**Note:** you will not be on the radar page until you save the settings. and vise-versa, if you don't want to be on the radar page, just clear the fields and click "Save". 
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+## Technicals 
+This project uses [Leaflet](https://leafletjs.com/) and [OpenLayers](https://openlayers.org/) to render the map.
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+The original project uses the same technology but was written in Javascript and Express and was not very modular. This project is written in TypeScript, using the T3 stack. 
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
-
-## How do I deploy this?
-
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+## Issues
+If you find any issues, please report them on the [Issues](https://github.com/anar-anar/geofs-radar/issues) page.
