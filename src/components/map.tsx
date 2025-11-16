@@ -198,8 +198,20 @@ class HeadingModeControl extends L.Control {
 
   onAdd(map: L.Map): HTMLDivElement {
     const container = L.DomUtil.create('div');
-    container.className =
-      'leaflet-bar leaflet-control w-[30px] h-[30px] leading-[30px] text-center cursor-pointer shadow-md rounded-md transition-colors duration-200';
+    container.style.cssText = `
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+      cursor: pointer;
+      background-color: white;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-radius: 4px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+      transition: all 0.2s ease;
+      font-size: 16px;
+      font-weight: bold;
+    `;
     container.title = 'Toggle Heading Mode';
     container.innerHTML = '&#8599;';
 
@@ -219,13 +231,11 @@ class HeadingModeControl extends L.Control {
   updateState(enabled: boolean) {
     if (this._container) {
       if (enabled) {
-        L.DomUtil.removeClass(this._container, 'bg-white');
-        L.DomUtil.addClass(this._container, 'bg-blue-500');
-        L.DomUtil.addClass(this._container, 'text-white');
+        this._container.style.backgroundColor = '#3b82f6';
+        this._container.style.color = 'white';
       } else {
-        L.DomUtil.removeClass(this._container, 'bg-blue-500');
-        L.DomUtil.removeClass(this._container, 'text-white');
-        L.DomUtil.addClass(this._container, 'bg-white');
+        this._container.style.backgroundColor = 'white';
+        this._container.style.color = 'black';
       }
     }
   }
@@ -402,7 +412,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
       headingMarkerRef.current = L.marker(e.latlng, {
         icon: L.divIcon({
           className: '',
-          html: '<div class="bg-blue-600 w-[10px] h-[10px] rounded-full"></div>',
+          html: '<div style="background-color: #2563eb; width: 10px; height: 10px; border-radius: 50%;"></div>',
           iconSize: [10, 10],
           iconAnchor: [5, 5],
         }),
@@ -441,7 +451,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
       );
 
       const tooltipContent = `
-        <div class="font-bold">
+        <div style="font-weight: bold;">
           Heading: ${heading.toFixed(1)}°
         </div>
         <div>
@@ -455,8 +465,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         headingTooltipRef.current = L.tooltip({
           permanent: true,
           direction: 'auto',
-          className:
-            'bg-black bg-opacity-70 text-white border-none rounded-md p-2 text-sm shadow-md pointer-events-none leaflet-tooltip-tip-hidden',
+          className: 'heading-tooltip',
         })
           .setLatLng(end)
           .setContent(tooltipContent)
@@ -488,7 +497,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
       map.on('mousedown', handleMouseDown);
       map.on('mousemove', handleMouseMove);
       map.on('mouseup', handleMouseUp);
-      L.DomUtil.addClass(map.getContainer(), 'cursor-crosshair');
+      map.getContainer().style.cursor = 'crosshair';
     } else {
       if (headingLineRef.current) {
         map.removeLayer(headingLineRef.current);
@@ -508,7 +517,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
       map.off('mousemove', handleMouseMove);
       map.off('mouseup', handleMouseUp);
       map.dragging.enable();
-      L.DomUtil.removeClass(map.getContainer(), 'cursor-crosshair');
+      map.getContainer().style.cursor = '';
     }
 
     return () => {
@@ -516,11 +525,30 @@ const MapComponent: React.FC<MapComponentProps> = ({
       map.off('mousemove', handleMouseMove);
       map.off('mouseup', handleMouseUp);
       map.dragging.enable();
-      L.DomUtil.removeClass(map.getContainer(), 'cursor-crosshair');
+      map.getContainer().style.cursor = '';
     };
   }, [isHeadingMode]);
 
-  return <div id="map-container" style={{ height: '100%', width: '100%' }} />;
+  return (
+    <>
+      <style jsx>{`
+        .heading-tooltip {
+          background-color: rgba(0, 0, 0, 0.7) !important;
+          color: white !important;
+          border: none !important;
+          border-radius: 4px !important;
+          padding: 8px !important;
+          font-size: 12px !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+          pointer-events: none !important;
+        }
+        .heading-tooltip::before {
+          display: none !important;
+        }
+      `}</style>
+      <div id="map-container" style={{ height: '100%', width: '100%' }} />
+    </>
+  );
 };
 
 export default MapComponent;
