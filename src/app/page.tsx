@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { type PositionUpdate } from '~/lib/aircraft-store';
 
@@ -21,9 +21,8 @@ const DynamicMapComponent = dynamic(
   }
 );
 
-const Sidebar = ({ aircraft }: { aircraft: PositionUpdate }) => {
-    
-    const renderFlightPlan = () => {
+const Sidebar = React.memo(({ aircraft }: { aircraft: PositionUpdate }) => {
+    const renderFlightPlan = useCallback(() => {
         if (!aircraft.flightPlan) return <p>Flight plan unavailable.</p>;
 
         try {
@@ -44,7 +43,7 @@ const Sidebar = ({ aircraft }: { aircraft: PositionUpdate }) => {
         } catch (e) {
             return <p>Error loading flight plan data.</p>;
         }
-    };
+    }, [aircraft.flightPlan]);
 
     return (
         <div style={{ 
@@ -78,10 +77,10 @@ const Sidebar = ({ aircraft }: { aircraft: PositionUpdate }) => {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px', marginBottom: '15px', padding: '10px', border: '1px solid #333', borderRadius: '5px', backgroundColor: 'rgba(33, 37, 41, 0.5)' }}>
-                    <div><strong>Altitude:</strong> {aircraft.alt.toFixed(0) || "0"} ft</div>
+                    <div><strong>Altitude:</strong> {aircraft.alt?.toFixed(0) || "0"} ft</div>
                     <div><strong>V-Speed:</strong> {aircraft.vspeed || "0"} ft/min</div>
-                    <div><strong>Speed:</strong> {aircraft.speed.toFixed(0)} kt</div>
-                    <div><strong>Heading:</strong> {aircraft.heading.toFixed(0)}°</div>
+                    <div><strong>Speed:</strong> {aircraft.speed?.toFixed(0)} kt</div>
+                    <div><strong>Heading:</strong> {aircraft.heading?.toFixed(0)}°</div>
                     <div><strong>Squawk:</strong> {aircraft.squawk || 'N/A'}</div>
                     <div><strong>Next Waypoint:</strong> {aircraft.nextWaypoint || ''}</div>
                 </div>
@@ -90,7 +89,7 @@ const Sidebar = ({ aircraft }: { aircraft: PositionUpdate }) => {
             </div>
         </div>
     );
-};
+});
 
 export default function ATCPage() {
   const [aircrafts, setAircrafts] = useState<PositionUpdate[]>([]);
@@ -98,55 +97,95 @@ export default function ATCPage() {
   const [selectedAircraft, setSelectedAircraft] = useState<PositionUpdate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const hasAircraft = useRef(false);
+  const fetchInterval = useRef(5000);
+  const intervalRef = useRef<NodeJS.Timeout>();
+  const abortControllerRef = useRef<AbortController>();
 
-  const handleAircraftSelect = (aircraft: PositionUpdate | null) => {
+  const handleAircraftSelect = useCallback((aircraft: PositionUpdate | null) => {
     setSelectedAircraft(aircraft);
-  };
+  }, []);
 
-  useEffect(() => {
-    const fetchAircraft = async () => {
-      try {
-        const response = await fetch('/api/atc/position');
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
+  const fetchAircraft = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
+    
+    try {
+      const response = await fetch('/api/atc/position', {
+        signal: abortControllerRef.current.signal,
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const processedAircraft: PositionUpdate[] = data.aircraft?.map((ac: any) => ({
+        ...ac,
+        ts: ac.ts || Date.now(),
+      })) || [];
+      
+      const currentlyHasAircraft = processedAircraft.length > 0;
+      
+      if (currentlyHasAircraft !== hasAircraft.current) {
+        hasAircraft.current = currentlyHasAircraft;
+        fetchInterval.current = currentlyHasAircraft ? 3000 : 15000;
+        
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = setInterval(fetchAircraft, fetchInterval.current);
         }
-        const data = await response.json();
-        
-        const processedAircraft: PositionUpdate[] = data.aircraft.map((ac: any) => ({
-          ...ac,
-          ts: ac.ts || Date.now(),
-        }));
-        
-        setAircrafts(processedAircraft || []);
-        setError(null);
-      } catch (e) {
+      }
+      
+      setAircrafts(processedAircraft);
+      setError(null);
+      
+    } catch (e: any) {
+      if (e.name !== 'AbortError') {
         console.error(e);
         setError('Failed to load aircraft data. Check the API status.');
-      } finally {
-        setIsLoading(false);
       }
-    };
-    
-    const fetchAirports = async () => {
-        try {
-            const response = await fetch('/airports.json');
-            const airportMap: AirportMap = await response.json();
-            const airportArray: Airport[] = Object.values(airportMap);
-            setAirports(airportArray);
-        } catch (e) {
-            console.warn("Could not load airports.json. Ensure file exists in /public directory.");
-        }
-    };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-    fetchAircraft();
-    fetchAirports();
-    const intervalId = setInterval(fetchAircraft, 5000);
-
-    return () => clearInterval(intervalId);
+  const fetchAirports = useCallback(async () => {
+    try {
+      const response = await fetch('/airports.json');
+      const airportMap: AirportMap = await response.json();
+      const airportArray: Airport[] = Object.values(airportMap);
+      setAirports(airportArray);
+    } catch (e) {
+      console.warn("Could not load airports.json. Ensure file exists in /public directory.");
+    }
   }, []);
 
   useEffect(() => {
-    if (selectedAircraft) {
+    fetchAircraft();
+    fetchAirports();
+    
+    intervalRef.current = setInterval(fetchAircraft, fetchInterval.current);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchAircraft, fetchAirports]);
+
+  useEffect(() => {
+    if (selectedAircraft && aircrafts.length > 0) {
       const updatedAircraft = aircrafts.find(
         (ac) => ac.callsign === selectedAircraft.callsign || ac.flightNo === selectedAircraft.flightNo
       );
@@ -157,7 +196,7 @@ export default function ATCPage() {
         setSelectedAircraft(null);
       }
     }
-  }, [aircrafts]);
+  }, [aircrafts, selectedAircraft]);
 
   const sidebarStyle = {
     transform: selectedAircraft ? 'translateX(0)' : 'translateX(300px)',
