@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeoFS ATC Radar
 // @namespace    http://tampermonkey.net/
-// @version      0.0.3
+// @version      0.0.4
 // @description  A ATC Radar for GeoFS which works like FlightRadar24.
 // @match        http://*/geofs.php*
 // @match        https://*/geofs.php*
@@ -9,7 +9,6 @@
 // @downloadURL  https://raw.githubusercontent.com/mansoorbarri/geofs-radar/main/user.js
 // @grant        none
 // ==/UserScript==
-
 
 (function () {
   'use strict';
@@ -26,6 +25,7 @@
   let wasOnGround = true;
   let takeoffTimeUTC = '';
   let isConnected = false;
+  let isFlightInfoSaved = false; // Track if flight info has been saved
 
   async function sendToAPI(payload) {
     try {
@@ -61,6 +61,7 @@
   function getAircraftName() {
     return geofs?.aircraft?.instance?.aircraftRecord?.name || 'Unknown';
   }
+  
   function getPlayerCallsign() {
     return geofs?.userRecord?.callsign || 'Unknown';
   }
@@ -139,8 +140,6 @@
     }
   }
 
-
-
   function buildPayload(snap) {
     checkTakeoff();
     let flightPlan = [];
@@ -170,83 +169,177 @@
       takeoffTime: takeoffTimeUTC,
       squawk: flightInfo.squawk,
       flightPlan: flightPlan,
-      nextWaypoint: geofs.flightPlan.trackedWaypoint.ident || NULL,
-      vspeed: geofs.autopilot.values.verticalSpeed || 0
+      nextWaypoint: geofs.flightPlan?.trackedWaypoint?.ident || null,
+      vspeed: geofs.autopilot?.values?.verticalSpeed || 0
     };
   }
 
+  function isFlightInfoComplete() {
+    return flightInfo.departure.trim() !== '' && 
+           flightInfo.arrival.trim() !== '' && 
+           flightInfo.flightNo.trim() !== '';
+  }
+
   setInterval(async () => {
+    // Only send data if flight info is saved and complete
+    if (!isFlightInfoSaved || !isFlightInfoComplete()) {
+      return;
+    }
+
     const snap = readSnapshot();
     if (!snap) return;
     const payload = buildPayload(snap);
     await sendToAPI(payload);
   }, SEND_INTERVAL_MS);
 
-  function showToast(msg) {
+  function showToast(msg, isError = false) {
     const toast = document.createElement('div');
     toast.textContent = msg;
     toast.style.position = 'fixed';
     toast.style.bottom = '20px';
     toast.style.right = '20px';
-    toast.style.background = 'rgba(0,0,0,0.8)';
+    toast.style.background = isError ? 'rgba(220,53,69,0.9)' : 'rgba(40,167,69,0.9)';
     toast.style.color = '#fff';
-    toast.style.padding = '8px 12px';
-    toast.style.borderRadius = '6px';
-    toast.style.fontSize = '13px';
+    toast.style.padding = '12px 16px';
+    toast.style.borderRadius = '8px';
+    toast.style.fontSize = '14px';
+    toast.style.fontWeight = '500';
     toast.style.zIndex = 1000000;
     toast.style.opacity = '0';
     toast.style.transition = 'opacity 0.3s ease';
+    toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
     document.body.appendChild(toast);
     requestAnimationFrame(() => { toast.style.opacity = '1'; });
     setTimeout(() => {
       toast.style.opacity = '0';
       setTimeout(() => toast.remove(), 300);
-    }, 2000);
+    }, 3000);
   }
 
   function injectFlightUI() {
     flightUI = document.createElement('div');
     flightUI.id = 'flightInfoUI';
-    flightUI.style.position = 'fixed';
-    flightUI.style.bottom = '280px';
-    flightUI.style.right = '6px';
-    flightUI.style.background = 'rgba(0,0,0,0.6)';
-    flightUI.style.padding = '8px';
-    flightUI.style.borderRadius = '6px';
-    flightUI.style.color = 'white';
-    flightUI.style.fontSize = '12px';
-    flightUI.style.zIndex = 999999;
+    flightUI.style.cssText = `
+      position: fixed;
+      bottom: 280px;
+      right: 10px;
+      background: linear-gradient(145deg, #2c3e50, #34495e);
+      padding: 20px;
+      border-radius: 12px;
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 13px;
+      z-index: 999999;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      min-width: 220px;
+    `;
 
     flightUI.innerHTML = `
-      <div>Dep: <input id="depInput" style="width:60px"></div>
-      <div>Arr: <input id="arrInput" style="width:60px"></div>
-      <div>Flt#: <input id="fltInput" style="width:60px"></div>
-      <div>SQK: <input id="sqkInput" style="width:60px" maxlength="4"></div>
-      <button id="saveBtn">Save</button>
+      <div style="text-align: center; margin-bottom: 15px; font-weight: bold; font-size: 14px; color: #3498db;">
+        ✈️ Flight Info
+      </div>
+      <div style="display: grid; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="width: 40px; font-weight: 500; color: #bdc3c7;">Dep:</label>
+          <input id="depInput" placeholder="ICAO" style="flex: 1; padding: 8px; border: none; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; font-size: 12px; outline: none; transition: background 0.3s;" maxlength="4">
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="width: 40px; font-weight: 500; color: #bdc3c7;">Arr:</label>
+          <input id="arrInput" placeholder="ICAO" style="flex: 1; padding: 8px; border: none; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; font-size: 12px; outline: none; transition: background 0.3s;" maxlength="4">
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="width: 40px; font-weight: 500; color: #bdc3c7;">Flt#:</label>
+          <input id="fltInput" placeholder="ABC123" style="flex: 1; padding: 8px; border: none; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; font-size: 12px; outline: none; transition: background 0.3s;" maxlength="8">
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="width: 40px; font-weight: 500; color: #bdc3c7;">SQK:</label>
+          <input id="sqkInput" placeholder="7000" style="flex: 1; padding: 8px; border: none; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; font-size: 12px; outline: none; transition: background 0.3s;" maxlength="4">
+        </div>
+      </div>
+      <button id="saveBtn" style="width: 100%; margin-top: 15px; padding: 10px; background: linear-gradient(145deg, #27ae60, #2ecc71); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; transition: all 0.3s; box-shadow: 0 2px 8px rgba(46,204,113,0.3);">
+        💾 Save Flight Info
+      </button>
+      <div id="statusIndicator" style="margin-top: 10px; text-align: center; font-size: 11px; color: #e74c3c; font-weight: 500;">
+        ⚠️ Flight info required
+      </div>
     `;
 
     document.body.appendChild(flightUI);
 
+    // Add hover effects to inputs
     ['depInput','arrInput','fltInput','sqkInput'].forEach(id => {
       const el = document.getElementById(id);
       el.addEventListener('input', () => {
         el.value = el.value.toUpperCase();
+        updateStatus();
+      });
+      el.addEventListener('focus', () => {
+        el.style.background = 'rgba(255,255,255,0.2)';
+      });
+      el.addEventListener('blur', () => {
+        el.style.background = 'rgba(255,255,255,0.1)';
       });
     });
 
-    document.getElementById('saveBtn').onclick = () => {
-     if (!validateSquawk(document.getElementById('sqkInput').value.trim())) {
-        document.getElementById('sqkInput').value = flightInfo.squawk;
-        showToast('Invalid transponder code');
+    // Add hover effect to save button
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.addEventListener('mouseenter', () => {
+      saveBtn.style.background = 'linear-gradient(145deg, #2ecc71, #27ae60)';
+      saveBtn.style.transform = 'translateY(-2px)';
+    });
+    saveBtn.addEventListener('mouseleave', () => {
+      saveBtn.style.background = 'linear-gradient(145deg, #27ae60, #2ecc71)';
+      saveBtn.style.transform = 'translateY(0)';
+    });
+
+    saveBtn.onclick = () => {
+      const dep = document.getElementById('depInput').value.trim();
+      const arr = document.getElementById('arrInput').value.trim();
+      const flt = document.getElementById('fltInput').value.trim();
+      const sqk = document.getElementById('sqkInput').value.trim();
+
+      if (!dep || !arr || !flt) {
+        showToast('Please fill in Departure, Arrival, and Flight Number', true);
         return;
       }
-      flightInfo.departure = document.getElementById('depInput').value.trim();
-      flightInfo.arrival = document.getElementById('arrInput').value.trim();
-      flightInfo.flightNo = document.getElementById('fltInput').value.trim();
-      flightInfo.squawk = document.getElementById('sqkInput').value.trim();
-      showToast('Flight info saved!');
+
+      if (sqk && !validateSquawk(sqk)) {
+        document.getElementById('sqkInput').value = flightInfo.squawk;
+        showToast('Invalid transponder code (use 0-7 digits only)', true);
+        return;
+      }
+
+      flightInfo.departure = dep;
+      flightInfo.arrival = arr;
+      flightInfo.flightNo = flt;
+      flightInfo.squawk = sqk;
+      isFlightInfoSaved = true;
+      
+      updateStatus();
+      showToast('✅ Flight info saved! Data transmission started.');
     };
+
+    updateStatus();
   }
+
+  function updateStatus() {
+    const statusEl = document.getElementById('statusIndicator');
+    if (!statusEl) return;
+
+    if (isFlightInfoSaved && isFlightInfoComplete()) {
+      statusEl.innerHTML = '✅ Active - Sending data';
+      statusEl.style.color = '#27ae60';
+    } else if (isFlightInfoComplete()) {
+      statusEl.innerHTML = '⚠️ Click Save to activate';
+      statusEl.style.color = '#f39c12';
+    } else {
+      statusEl.innerHTML = '⚠️ Flight info required';
+      statusEl.style.color = '#e74c3c';
+    }
+  }
+
   injectFlightUI();
 
   document.addEventListener('keydown', (e) => {
