@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { type PositionUpdate } from '~/lib/aircraft-store';
@@ -10,56 +10,56 @@ interface MapComponentProps {
 }
 
 interface Airport {
-    name: string;
-    lat: number;
-    lon: number;
-    icao: string;
+  name: string;
+  lat: number;
+  lon: number;
+  icao: string;
 }
 
 let mapInstance: L.Map | null = null;
 let flightPlanLayerGroup: L.LayerGroup | null = null;
-let isInitialLoad = true; 
+let isInitialLoad = true;
 
 const WaypointIcon = L.divIcon({
-    html: '<div style="font-size: 16px; font-weight: bold; color: #f54291; text-shadow: 0 0 2px #000;">X</div>',
-    className: 'leaflet-waypoint-icon',
-    iconSize: [20, 20],
-    iconAnchor: [10, 10], 
+  html: '<div style="font-size: 16px; font-weight: bold; color: #f54291; text-shadow: 0 0 2px #000;">X</div>',
+  className: 'leaflet-waypoint-icon',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
 });
 
 const ActiveWaypointIcon = L.divIcon({
-    html: '<div style="font-size: 16px; font-weight: bold; color: #00ff00; text-shadow: 0 0 4px #000; animation: pulse-active 1.5s ease-in-out infinite;">▲</div>',
-    className: 'leaflet-active-waypoint-icon',
-    iconSize: [20, 20],
-    iconAnchor: [10, 10], 
+  html: '<div style="font-size: 16px; font-weight: bold; color: #00ff00; text-shadow: 0 0 4px #000; animation: pulse-active 1.5s ease-in-out infinite;">▲</div>',
+  className: 'leaflet-active-waypoint-icon',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
 });
 
 const getAircraftDivIcon = (aircraft: PositionUpdate) => {
-  const iconUrl = 'https://i.ibb.co/6cNhyMMj/1.png'; 
-  const planeSize = 30; 
-  const tagHeight = 45; 
-  const tagWidth = 150; 
-  const tagHorizontalSpacing = 10; 
+  const iconUrl = 'https://i.ibb.co/6cNhyMMj/1.png';
+  const planeSize = 30;
+  const tagHeight = 45;
+  const tagWidth = 150;
+  const tagHorizontalSpacing = 10;
 
   const iconWidth = planeSize + tagHorizontalSpacing + tagWidth;
-  const iconHeight = Math.max(planeSize, tagHeight); 
+  const iconHeight = Math.max(planeSize, tagHeight);
 
-  const anchorX = planeSize / 2; 
-  const anchorY = iconHeight / 2; 
+  const anchorX = planeSize / 2;
+  const anchorY = iconHeight / 2;
 
   const containerStyle = `
     position: absolute;
-    top: ${ (iconHeight - planeSize) / 2 }px; 
-    left: 0; 
+    top: ${(iconHeight - planeSize) / 2}px;
+    left: 0;
     width: ${planeSize}px;
     height: ${planeSize}px;
   `;
 
   const tagStyle = `
     position: absolute;
-    top: ${ (planeSize / 2) - (tagHeight / 2) }px; 
-    left: ${planeSize + tagHorizontalSpacing}px; 
-    
+    top: ${(planeSize / 2) - (tagHeight / 2)}px;
+    left: ${planeSize + tagHorizontalSpacing}px;
+
     width: ${tagWidth}px;
     padding: 4px 6px;
     background-color: rgba(0, 0, 0, 0.4);
@@ -71,9 +71,9 @@ const getAircraftDivIcon = (aircraft: PositionUpdate) => {
     line-height: 1.3;
     z-index: 1000;
     pointer-events: none;
-    transform: none; 
+    transform: none;
   `;
-  
+
   const detailContent = `
     <div style="font-size: 12px; font-weight: bold; color: #fff;">
       ${aircraft.callsign || aircraft.flightNo || 'N/A'} (${aircraft.flightNo || 'N/A'})
@@ -89,8 +89,8 @@ const getAircraftDivIcon = (aircraft: PositionUpdate) => {
   return L.divIcon({
     html: `
       <div style="${containerStyle}" class="aircraft-marker-container">
-        <img src="${iconUrl}" 
-             style="width:${planeSize}px; height:${planeSize}px; transform:rotate(${aircraft.heading || 0}deg); display: block;" 
+        <img src="${iconUrl}"
+             style="width:${planeSize}px; height:${planeSize}px; transform:rotate(${aircraft.heading || 0}deg); display: block;"
              alt="${aircraft.callsign}"
         />
         <div class="aircraft-tag" style="${tagStyle}">
@@ -99,185 +99,426 @@ const getAircraftDivIcon = (aircraft: PositionUpdate) => {
       </div>
     `,
     className: 'leaflet-aircraft-icon',
-    iconSize: [iconWidth, iconHeight], 
+    iconSize: [iconWidth, iconHeight],
     iconAnchor: [anchorX, anchorY],
-    popupAnchor: [0, -15]
+    popupAnchor: [0, -15],
   });
 };
 
 const AirportIcon = L.icon({
-    iconUrl: 'https://i0.wp.com/microshare.io/wp-content/uploads/2024/04/airport2-icon.png?resize=510%2C510&ssl=1',
-    iconSize: [30, 30],
-    iconAnchor: [16, 16],
-    popupAnchor: [0, -16]
+  iconUrl: 'https://i0.wp.com/microshare.io/wp-content/uploads/2024/04/airport2-icon.png?resize=510%2C510&ssl=1',
+  iconSize: [30, 30],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -16],
 });
 
-// Helper function to calculate great-circle distance (Haversine formula, in km)
-const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+const calculateDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) *
+      Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 };
 
-// Simplified logic to determine the active waypoint
+const calculateBearing = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number => {
+  const toRad = (deg: number) => deg * Math.PI / 180;
+  const toDeg = (rad: number) => rad * 180 / Math.PI;
+
+  const φ1 = toRad(lat1);
+  const φ2 = toRad(lat2);
+  const Δλ = toRad(lon2 - lon1);
+
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x =
+    Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  const θ = toDeg(Math.atan2(y, x));
+
+  return (θ + 360) % 360;
+};
+
 const findActiveWaypointIndex = (aircraft: PositionUpdate, waypoints: any[]): number => {
-    if (waypoints.length < 1) return -1;
-    
-    const currentLat = aircraft.lat;
-    const currentLon = aircraft.lon;
-    
-    let closestWaypointIndex = -1;
-    let minDistanceKm = Infinity;
+  if (waypoints.length < 1) return -1;
 
-    // Find the closest waypoint that is NOT the departure point (usually the 0th or 1st)
-    for (let i = 0; i < waypoints.length; i++) {
-        const wp = waypoints[i];
-        if (!wp.lat || !wp.lon) continue;
+  const currentLat = aircraft.lat;
+  const currentLon = aircraft.lon;
 
-        const distance = calculateDistance(currentLat, currentLon, wp.lat, wp.lon);
-        
-        // This simple logic finds the overall closest waypoint and assumes it's the target.
-        // In a real system, you'd use cross-track error and bearing.
-        // We'll filter for waypoints that are likely ahead of the aircraft.
-        if (distance < minDistanceKm) {
-            minDistanceKm = distance;
-            closestWaypointIndex = i;
-        }
+  let closestWaypointIndex = -1;
+  let minDistanceKm = Infinity;
+
+  for (let i = 0; i < waypoints.length; i++) {
+    const wp = waypoints[i];
+    if (!wp.lat || !wp.lon) continue;
+
+    const distance = calculateDistance(currentLat, currentLon, wp.lat, wp.lon);
+
+    if (distance < minDistanceKm) {
+      minDistanceKm = distance;
+      closestWaypointIndex = i;
     }
-    
-    // Safety check: if the aircraft is very close to the identified waypoint, 
-    // try to move to the next one if it exists. (Acts as a simple 'passed' check)
-    if (minDistanceKm < 50 && closestWaypointIndex < waypoints.length - 1) { // 50km tolerance
-        return closestWaypointIndex + 1;
-    }
-    
-    return closestWaypointIndex;
+  }
+
+  if (minDistanceKm < 50 && closestWaypointIndex < waypoints.length - 1) {
+    return closestWaypointIndex + 1;
+  }
+
+  return closestWaypointIndex;
 };
 
+class HeadingModeControl extends L.Control {
+  public options = {
+    position: 'topleft' as L.ControlPosition,
+  };
+  public _container: HTMLDivElement | null = null;
+  private _toggleHeadingMode: React.Dispatch<React.SetStateAction<boolean>>;
+  private _boundClickHandler: (event: Event) => void;
 
-const MapComponent: React.FC<MapComponentProps> = ({ aircrafts, airports, onAircraftSelect }) => {
-  
+  constructor(options: L.ControlOptions, toggleHeadingMode: React.Dispatch<React.SetStateAction<boolean>>) {
+    super(options);
+    this._toggleHeadingMode = toggleHeadingMode;
+    this._boundClickHandler = (event: Event) => {
+      this._toggleHeadingMode((prev) => !prev);
+    };
+  }
+
+  onAdd(map: L.Map): HTMLDivElement {
+    const container = L.DomUtil.create('div');
+    container.className =
+      'leaflet-bar leaflet-control w-[30px] h-[30px] leading-[30px] text-center cursor-pointer shadow-md rounded-md transition-colors duration-200';
+    container.title = 'Toggle Heading Mode';
+    container.innerHTML = '&#8599;';
+
+    L.DomEvent.on(container, 'click', L.DomEvent.stopPropagation);
+    L.DomEvent.on(container, 'click', L.DomEvent.preventDefault);
+    L.DomEvent.on(container, 'click', this._boundClickHandler);
+    this._container = container;
+    return container;
+  }
+
+  onRemove(map: L.Map) {
+    if (this._container) {
+      L.DomEvent.off(this._container, 'click', this._boundClickHandler);
+    }
+  }
+
+  updateState(enabled: boolean) {
+    if (this._container) {
+      if (enabled) {
+        L.DomUtil.removeClass(this._container, 'bg-white');
+        L.DomUtil.addClass(this._container, 'bg-blue-500');
+        L.DomUtil.addClass(this._container, 'text-white');
+      } else {
+        L.DomUtil.removeClass(this._container, 'bg-blue-500');
+        L.DomUtil.removeClass(this._container, 'text-white');
+        L.DomUtil.addClass(this._container, 'bg-white');
+      }
+    }
+  }
+}
+
+const MapComponent: React.FC<MapComponentProps> = ({
+  aircrafts,
+  airports,
+  onAircraftSelect,
+}) => {
+  const [isHeadingMode, setIsHeadingMode] = useState<boolean>(false);
+  const headingStartPointRef = useRef<L.LatLng | null>(null);
+  const headingLineRef = useRef<L.Polyline | null>(null);
+  const headingTooltipRef = useRef<L.Tooltip | null>(null);
+  const headingMarkerRef = useRef<L.Marker | null>(null);
+  const headingControlRef = useRef<HeadingModeControl | null>(null);
+
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    const headingControl = new HeadingModeControl(
+      {},
+      setIsHeadingMode,
+    );
+    mapInstance.addControl(headingControl);
+    headingControlRef.current = headingControl;
+
+    return () => {
+      mapInstance?.removeControl(headingControl);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (headingControlRef.current) {
+      headingControlRef.current.updateState(isHeadingMode);
+    }
+  }, [isHeadingMode]);
+
   useEffect(() => {
     if (!mapInstance) {
       mapInstance = L.map('map-container', {
-        zoomAnimation: true, 
+        zoomAnimation: true,
       }).setView([20, 0], 2);
 
       L.tileLayer('https://mt0.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
-          attribution: 'Esri, Garmin, FAO, USGS, NPS',
-          maxZoom: 18,
-          transparent: true,
-          pane: 'overlayPane',
+        attribution: 'Esri, Garmin, FAO, USGS, NPS',
+        maxZoom: 18,
+        transparent: true,
+        pane: 'overlayPane',
       }).addTo(mapInstance);
-      
+
       flightPlanLayerGroup = L.layerGroup().addTo(mapInstance);
-      
+
       mapInstance.on('click', (e) => {
-          const target = e.originalEvent.target as HTMLElement;
-          if (
-              !target.closest('.leaflet-marker-icon') &&
-              !target.closest('.leaflet-popup-pane') &&
-              !target.closest('.leaflet-control') &&
-              flightPlanLayerGroup
-          ) {
-              flightPlanLayerGroup.clearLayers();
-              onAircraftSelect(null);
-          }
+        const target = e.originalEvent.target as HTMLElement;
+        if (
+          !target.closest('.leaflet-marker-icon') &&
+          !target.closest('.leaflet-popup-pane') &&
+          !target.closest('.leaflet-control') &&
+          flightPlanLayerGroup
+        ) {
+          flightPlanLayerGroup.clearLayers();
+          onAircraftSelect(null);
+        }
       });
     }
-    
+
     mapInstance.eachLayer((layer) => {
-        if (layer instanceof L.Marker) {
-            mapInstance?.removeLayer(layer);
-        }
+      if (layer instanceof L.Marker) {
+        mapInstance?.removeLayer(layer);
+      }
     });
 
-    airports.forEach(airport => {
-        const popupContent = `**Airport:** ${airport.name}<br>(${airport.icao})`;
-        
-        L.marker([airport.lat, airport.lon], {
-            title: airport.name,
-            icon: AirportIcon,
-        }).addTo(mapInstance!)
-          .bindPopup(popupContent);
+    airports.forEach((airport) => {
+      const popupContent = `**Airport:** ${airport.name}<br>(${airport.icao})`;
+
+      L.marker([airport.lat, airport.lon], {
+        title: airport.name,
+        icon: AirportIcon,
+      })
+        .addTo(mapInstance!)
+        .bindPopup(popupContent);
     });
 
     const drawFlightPlan = (aircraft: PositionUpdate) => {
-        if (!mapInstance || !aircraft.flightPlan || !flightPlanLayerGroup) return;
+      if (!mapInstance || !aircraft.flightPlan || !flightPlanLayerGroup) return;
 
-        try {
-            flightPlanLayerGroup.clearLayers();
-            
-            const waypoints = JSON.parse(aircraft.flightPlan);
-            
-            if (waypoints.length === 0) return;
-            
-            const activeWaypointIndex = findActiveWaypointIndex(aircraft, waypoints);
-            const coordinates: L.LatLngTuple[] = [];
+      try {
+        flightPlanLayerGroup.clearLayers();
 
-            waypoints.forEach((wp: any, index: number) => {
-                if (wp.lat && wp.lon) {
-                    coordinates.push([wp.lat, wp.lon]);
+        const waypoints = JSON.parse(aircraft.flightPlan);
 
-                    const popupContent = `
+        if (waypoints.length === 0) return;
+
+        const activeWaypointIndex = findActiveWaypointIndex(
+          aircraft,
+          waypoints,
+        );
+        const coordinates: L.LatLngTuple[] = [];
+
+        waypoints.forEach((wp: any, index: number) => {
+          if (wp.lat && wp.lon) {
+            coordinates.push([wp.lat, wp.lon]);
+
+            const popupContent = `
                         <strong>Waypoint: ${wp.ident}</strong> (${wp.type})<br>
                         Altitude: ${wp.alt ? wp.alt + ' ft' : 'N/A'}<br>
                         Speed: ${wp.spd ? wp.spd + ' kt' : 'N/A'}
                     `;
-                    
-                    const icon = index === activeWaypointIndex ? ActiveWaypointIcon : WaypointIcon;
 
-                    const waypointMarker = L.marker([wp.lat, wp.lon], {
-                        icon: icon,
-                        title: wp.ident
-                    })
-                    .bindPopup(popupContent)
-                    .addTo(flightPlanLayerGroup!); 
-                    
-                    waypointMarker.on('click', (e) => { L.DomEvent.stopPropagation(e); });
-                }
+            const icon =
+              index === activeWaypointIndex ? ActiveWaypointIcon : WaypointIcon;
+
+            const waypointMarker = L.marker([wp.lat, wp.lon], {
+              icon: icon,
+              title: wp.ident,
+            })
+              .bindPopup(popupContent)
+              .addTo(flightPlanLayerGroup!);
+
+            waypointMarker.on('click', (e) => {
+              L.DomEvent.stopPropagation(e);
             });
+          }
+        });
 
-            if (coordinates.length < 2) return;
+        if (coordinates.length < 2) return;
 
-            const polyline = L.polyline(coordinates, {
-                color: '#ff00ff', 
-                weight: 5, 
-                opacity: 0.7,
-                dashArray: '10, 5'
-            });
+        const polyline = L.polyline(coordinates, {
+          color: '#ff00ff',
+          weight: 5,
+          opacity: 0.7,
+          dashArray: '10, 5',
+        });
 
-            flightPlanLayerGroup.addLayer(polyline);
+        flightPlanLayerGroup.addLayer(polyline);
 
-            mapInstance.fitBounds(polyline.getBounds(), { padding: [50, 50] });
-
-        } catch (error) {
-            console.error("Error drawing flight plan:", error);
-        }
+        mapInstance.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+      } catch (error) {
+        console.error('Error drawing flight plan:', error);
+      }
     };
 
-    aircrafts.forEach(aircraft => {
+    aircrafts.forEach((aircraft) => {
       const icon = getAircraftDivIcon(aircraft);
 
       const marker = L.marker([aircraft.lat, aircraft.lon], {
         title: aircraft.callsign,
         icon: icon,
       }).addTo(mapInstance!);
-      
+
       marker.on('click', (e) => {
-          L.DomEvent.stopPropagation(e); 
-          drawFlightPlan(aircraft);
-          onAircraftSelect(aircraft);
+        L.DomEvent.stopPropagation(e);
+        drawFlightPlan(aircraft);
+        onAircraftSelect(aircraft);
       });
     });
 
     isInitialLoad = false;
-  }, [aircrafts, airports, onAircraftSelect]); 
+  }, [aircrafts, airports, onAircraftSelect]);
+
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    const map = mapInstance;
+
+    const handleMouseDown = (e: L.LeafletMouseEvent) => {
+      if (!isHeadingMode) return;
+      headingStartPointRef.current = e.latlng;
+
+      if (headingMarkerRef.current) {
+        map.removeLayer(headingMarkerRef.current);
+      }
+      headingMarkerRef.current = L.marker(e.latlng, {
+        icon: L.divIcon({
+          className: '',
+          html: '<div class="bg-blue-600 w-[10px] h-[10px] rounded-full"></div>',
+          iconSize: [10, 10],
+          iconAnchor: [5, 5],
+        }),
+      }).addTo(map);
+
+      map.dragging.disable();
+    };
+
+    const handleMouseMove = (e: L.LeafletMouseEvent) => {
+      if (!isHeadingMode || !headingStartPointRef.current) return;
+
+      const start = headingStartPointRef.current;
+      const end = e.latlng;
+
+      if (headingLineRef.current) {
+        headingLineRef.current.setLatLngs([start, end]);
+      } else {
+        headingLineRef.current = L.polyline([start, end], {
+          color: 'blue',
+          weight: 3,
+          dashArray: '5, 5',
+        }).addTo(map);
+      }
+
+      const distance = calculateDistance(
+        start.lat,
+        start.lng,
+        end.lat,
+        end.lng,
+      );
+      const heading = calculateBearing(
+        start.lat,
+        start.lng,
+        end.lat,
+        end.lng,
+      );
+
+      const tooltipContent = `
+        <div class="font-bold">
+          Heading: ${heading.toFixed(1)}°
+        </div>
+        <div>
+          Distance: ${distance.toFixed(1)} km
+        </div>
+      `;
+
+      if (headingTooltipRef.current) {
+        headingTooltipRef.current.setLatLng(end).setContent(tooltipContent);
+      } else {
+        headingTooltipRef.current = L.tooltip({
+          permanent: true,
+          direction: 'auto',
+          className:
+            'bg-black bg-opacity-70 text-white border-none rounded-md p-2 text-sm shadow-md pointer-events-none leaflet-tooltip-tip-hidden',
+        })
+          .setLatLng(end)
+          .setContent(tooltipContent)
+          .addTo(map);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (!isHeadingMode) return;
+
+      if (headingLineRef.current) {
+        map.removeLayer(headingLineRef.current);
+        headingLineRef.current = null;
+      }
+      if (headingTooltipRef.current) {
+        map.removeLayer(headingTooltipRef.current);
+        headingTooltipRef.current = null;
+      }
+      if (headingMarkerRef.current) {
+        map.removeLayer(headingMarkerRef.current);
+        headingMarkerRef.current = null;
+      }
+
+      headingStartPointRef.current = null;
+      map.dragging.enable();
+    };
+
+    if (isHeadingMode) {
+      map.on('mousedown', handleMouseDown);
+      map.on('mousemove', handleMouseMove);
+      map.on('mouseup', handleMouseUp);
+      L.DomUtil.addClass(map.getContainer(), 'cursor-crosshair');
+    } else {
+      if (headingLineRef.current) {
+        map.removeLayer(headingLineRef.current);
+        headingLineRef.current = null;
+      }
+      if (headingTooltipRef.current) {
+        map.removeLayer(headingTooltipRef.current);
+        headingTooltipRef.current = null;
+      }
+      if (headingMarkerRef.current) {
+        map.removeLayer(headingMarkerRef.current);
+        headingMarkerRef.current = null;
+      }
+      headingStartPointRef.current = null;
+
+      map.off('mousedown', handleMouseDown);
+      map.off('mousemove', handleMouseMove);
+      map.off('mouseup', handleMouseUp);
+      map.dragging.enable();
+      L.DomUtil.removeClass(map.getContainer(), 'cursor-crosshair');
+    }
+
+    return () => {
+      map.off('mousedown', handleMouseDown);
+      map.off('mousemove', handleMouseMove);
+      map.off('mouseup', handleMouseUp);
+      map.dragging.enable();
+      L.DomUtil.removeClass(map.getContainer(), 'cursor-crosshair');
+    };
+  }, [isHeadingMode]);
 
   return <div id="map-container" style={{ height: '100%', width: '100%' }} />;
 };

@@ -18,3 +18,11 @@
 .leaflet-aircraft-icon:hover .aircraft-tag {
   background-color: rgba(0, 0, 0, 0.8) !important; /* 80% opacity on hover */
 }
+
+.cursor-crosshair {
+  cursor: crosshair !important;
+}
+
+.leaflet-tooltip-tip-hidden .leaflet-tooltip-tip {
+  display: none !important;
+}
