@@ -98,10 +98,10 @@ export default function ATCPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const hasAircraft = useRef(false);
-  const fetchInterval = useRef(5000);
-  const intervalRef = useRef<NodeJS.Timeout>();
-  const abortControllerRef = useRef<AbortController>();
+  const hasAircraft = useRef<boolean>(false);
+  const fetchInterval = useRef<number>(5000);
+  const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const abortControllerRef = useRef<AbortController | undefined>(undefined);
 
   const handleAircraftSelect = useCallback((aircraft: PositionUpdate | null) => {
     setSelectedAircraft(aircraft);

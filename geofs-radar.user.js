@@ -329,10 +329,10 @@
     if (!statusEl) return;
 
     if (isFlightInfoSaved && isFlightInfoComplete()) {
-      statusEl.innerHTML = '✅ Active - Sending data';
+      statusEl.innerHTML = '✅ Connected!';
       statusEl.style.color = '#27ae60';
     } else if (isFlightInfoComplete()) {
-      statusEl.innerHTML = '⚠️ Click Save to activate';
+      statusEl.innerHTML = '⚠️ Click Save to get connected';
       statusEl.style.color = '#f39c12';
     } else {
       statusEl.innerHTML = '⚠️ Flight info required';
