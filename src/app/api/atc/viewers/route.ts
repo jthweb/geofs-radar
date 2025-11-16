@@ -60,7 +60,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-export async function OPTIONS(): Promise<NextResponse> {
+export async function OPTIONS() {
+  await Promise.resolve()
   return new NextResponse(null, {
     status: 200,
     headers: CORS_HEADERS,
