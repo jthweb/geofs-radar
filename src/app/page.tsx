@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { type PositionUpdate } from '~/lib/aircraft-store';
+import { useViewerTracker } from '~/hooks/use-viewer-counter';
 
 interface Airport {
     name: string;
@@ -104,6 +105,7 @@ export default function ATCPage() {
   const fetchInterval = useRef<number>(5000);
   const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const abortControllerRef = useRef<AbortController | undefined>(undefined);
+  useViewerTracker({ enabled: true });
 
   const handleAircraftSelect = useCallback((aircraft: PositionUpdate | null) => {
     setSelectedAircraft(aircraft);

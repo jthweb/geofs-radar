@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeoFS ATC Radar
 // @namespace    http://tampermonkey.net/
-// @version      0.0.5
+// @version      0.0.6
 // @description  A ATC Radar for GeoFS which works like FlightRadar24.
 // @match        http://*/geofs.php*
 // @match        https://*/geofs.php*
@@ -26,6 +26,33 @@
   let takeoffTimeUTC = '';
   let isConnected = false;
   let isFlightInfoSaved = false;
+  let hasActiveViewers = false;
+  let lastViewerCheckTime = 0;
+  const VIEWER_CHECK_INTERVAL = 15000;
+
+  async function checkForActiveViewers() {
+    try {
+      const response = await fetch('https://geofs-radar.vercel.app/api/atc/viewers', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        console.warn('[ATC-Reporter] Viewer check API error:', response.status);
+        return false;
+      }
+
+      const data = await response.json();
+      hasActiveViewers = data.activeViewers > 0 || data.hasViewers === true;
+      
+      return hasActiveViewers;
+    } catch (error) {
+      console.warn('[ATC-Reporter] Viewer check error:', error);
+      return false;
+    }
+  }
 
   async function sendToAPI(payload) {
     try {
@@ -198,6 +225,17 @@
       return;
     }
 
+    const now = Date.now();
+    if (now - lastViewerCheckTime > VIEWER_CHECK_INTERVAL) {
+      await checkForActiveViewers();
+      lastViewerCheckTime = now;
+    }
+
+    if (!hasActiveViewers) {
+      log('No active radar viewers, skipping data transmission');
+      return;
+    }
+
     const snap = readSnapshot();
     if (!snap) return;
     const payload = buildPayload(snap);
@@ -359,8 +397,13 @@
     if (!statusEl) return;
 
     if (isFlightInfoSaved && isFlightInfoComplete()) {
-      statusEl.innerHTML = 'Connected!';
-      statusEl.style.color = '#27ae60';
+      if (hasActiveViewers) {
+        statusEl.innerHTML = 'Connected! ATC viewers online';
+        statusEl.style.color = '#27ae60';
+      } else {
+        statusEl.innerHTML = 'Connected! No ATC viewers';
+        statusEl.style.color = '#f39c12';
+      }
     } else if (isFlightInfoComplete()) {
       statusEl.innerHTML = 'Click Save to get connected';
       statusEl.style.color = '#f39c12';
