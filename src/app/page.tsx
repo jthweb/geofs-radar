@@ -91,6 +91,8 @@ const Sidebar = React.memo(({ aircraft }: { aircraft: PositionUpdate }) => {
     );
 });
 
+Sidebar.displayName = 'Sidebar';
+
 export default function ATCPage() {
   const [aircrafts, setAircrafts] = useState<PositionUpdate[]>([]);
   const [airports, setAirports] = useState<Airport[]>([]);
