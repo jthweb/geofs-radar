@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeoFS ATC Radar
 // @namespace    http://tampermonkey.net/
-// @version      0.0.4
+// @version      0.0.5
 // @description  A ATC Radar for GeoFS which works like FlightRadar24.
 // @match        http://*/geofs.php*
 // @match        https://*/geofs.php*
@@ -25,7 +25,7 @@
   let wasOnGround = true;
   let takeoffTimeUTC = '';
   let isConnected = false;
-  let isFlightInfoSaved = false; // Track if flight info has been saved
+  let isFlightInfoSaved = false;
 
   async function sendToAPI(payload) {
     try {
@@ -180,8 +180,20 @@
            flightInfo.flightNo.trim() !== '';
   }
 
+  function clearAllData() {
+    flightInfo = { departure: '', arrival: '', flightNo: '', squawk: '' };
+    isFlightInfoSaved = false;
+    takeoffTimeUTC = '';
+    
+    document.getElementById('depInput').value = '';
+    document.getElementById('arrInput').value = '';
+    document.getElementById('fltInput').value = '';
+    document.getElementById('sqkInput').value = '';
+    
+    updateStatus();
+  }
+
   setInterval(async () => {
-    // Only send data if flight info is saved and complete
     if (!isFlightInfoSaved || !isFlightInfoComplete()) {
       return;
     }
@@ -238,7 +250,7 @@
 
     flightUI.innerHTML = `
       <div style="text-align: center; margin-bottom: 15px; font-weight: bold; font-size: 14px; color: #3498db;">
-        ✈️ Flight Info
+        Flight Info
       </div>
       <div style="display: grid; gap: 10px;">
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -258,17 +270,21 @@
           <input id="sqkInput" placeholder="7000" style="flex: 1; padding: 8px; border: none; border-radius: 6px; background: rgba(255,255,255,0.1); color: white; font-size: 12px; outline: none; transition: background 0.3s;" maxlength="4">
         </div>
       </div>
-      <button id="saveBtn" style="width: 100%; margin-top: 15px; padding: 10px; background: linear-gradient(145deg, #27ae60, #2ecc71); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; transition: all 0.3s; box-shadow: 0 2px 8px rgba(46,204,113,0.3);">
-        💾 Save Flight Info
-      </button>
+      <div style="display: flex; gap: 8px; margin-top: 15px;">
+        <button id="saveBtn" style="flex: 1; padding: 10px; background: linear-gradient(145deg, #27ae60, #2ecc71); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; transition: all 0.3s; box-shadow: 0 2px 8px rgba(46,204,113,0.3);">
+          Save
+        </button>
+        <button id="clearBtn" style="padding: 10px 12px; background: linear-gradient(145deg, #e74c3c, #c0392b); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; transition: all 0.3s; box-shadow: 0 2px 8px rgba(231,76,60,0.3);">
+          Clear
+        </button>
+      </div>
       <div id="statusIndicator" style="margin-top: 10px; text-align: center; font-size: 11px; color: #e74c3c; font-weight: 500;">
-        ⚠️ Flight info required
+        Flight info required
       </div>
     `;
 
     document.body.appendChild(flightUI);
 
-    // Add hover effects to inputs
     ['depInput','arrInput','fltInput','sqkInput'].forEach(id => {
       const el = document.getElementById(id);
       el.addEventListener('input', () => {
@@ -283,7 +299,6 @@
       });
     });
 
-    // Add hover effect to save button
     const saveBtn = document.getElementById('saveBtn');
     saveBtn.addEventListener('mouseenter', () => {
       saveBtn.style.background = 'linear-gradient(145deg, #2ecc71, #27ae60)';
@@ -292,6 +307,16 @@
     saveBtn.addEventListener('mouseleave', () => {
       saveBtn.style.background = 'linear-gradient(145deg, #27ae60, #2ecc71)';
       saveBtn.style.transform = 'translateY(0)';
+    });
+
+    const clearBtn = document.getElementById('clearBtn');
+    clearBtn.addEventListener('mouseenter', () => {
+      clearBtn.style.background = 'linear-gradient(145deg, #c0392b, #a93226)';
+      clearBtn.style.transform = 'translateY(-2px)';
+    });
+    clearBtn.addEventListener('mouseleave', () => {
+      clearBtn.style.background = 'linear-gradient(145deg, #e74c3c, #c0392b)';
+      clearBtn.style.transform = 'translateY(0)';
     });
 
     saveBtn.onclick = () => {
@@ -318,7 +343,12 @@
       isFlightInfoSaved = true;
       
       updateStatus();
-      showToast('✅ Flight info saved! Data transmission started.');
+      showToast('Flight info saved! Data transmission started.');
+    };
+
+    clearBtn.onclick = () => {
+      clearAllData();
+      showToast('Flight info cleared! Data transmission stopped.');
     };
 
     updateStatus();
@@ -329,13 +359,13 @@
     if (!statusEl) return;
 
     if (isFlightInfoSaved && isFlightInfoComplete()) {
-      statusEl.innerHTML = '✅ Connected!';
+      statusEl.innerHTML = 'Connected!';
       statusEl.style.color = '#27ae60';
     } else if (isFlightInfoComplete()) {
-      statusEl.innerHTML = '⚠️ Click Save to get connected';
+      statusEl.innerHTML = 'Click Save to get connected';
       statusEl.style.color = '#f39c12';
     } else {
-      statusEl.innerHTML = '⚠️ Flight info required';
+      statusEl.innerHTML = 'Flight info required';
       statusEl.style.color = '#e74c3c';
     }
   }
