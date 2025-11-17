@@ -34,7 +34,7 @@ const ActiveWaypointIcon = L.divIcon({
   iconAnchor: [10, 10],
 });
 
-const getAircraftDivIcon = (aircraft: PositionUpdate) => {
+const getAircraftDivIcon = (aircraft: PositionUpdate & { altMSL?: number }) => {
   const iconUrl = 'https://i.ibb.co/6cNhyMMj/1.png';
   const planeSize = 30;
   const tagHeight = 45;
@@ -74,12 +74,19 @@ const getAircraftDivIcon = (aircraft: PositionUpdate) => {
     transform: none;
   `;
 
+  const altMSL = aircraft.altMSL ?? aircraft.alt;
+  const altAGL = aircraft.alt;
+  const isOnGround = altAGL < 100;
+  const displayAlt = isOnGround ? `${altAGL.toFixed(0)}ft AGL` : 
+                     altMSL >= 18000 ? `FL${Math.round(altMSL / 100)}` :
+                     `${altAGL.toFixed(0)}ft AGL`;
+
   const detailContent = `
     <div style="font-size: 12px; font-weight: bold; color: #fff;">
       ${aircraft.callsign || aircraft.flightNo || 'N/A'} (${aircraft.flightNo || 'N/A'})
     </div>
     <div style="font-size: 10px; opacity: 0.9;">
-      ${aircraft.alt.toFixed(0)}ft | HDG ${aircraft.heading.toFixed(0)}° | ${aircraft.speed.toFixed(0)}kt
+      ${displayAlt} | HDG ${aircraft.heading.toFixed(0)}° | ${aircraft.speed.toFixed(0)}kt
     </div>
     <div style="font-size: 10px; opacity: 0.8;">
       SQK: ${aircraft.squawk || 'N/A'} | ${aircraft.departure || 'UNK'} → ${aircraft.arrival || 'UNK'}
@@ -355,13 +362,12 @@ const MapComponent: React.FC<MapComponentProps> = ({
 
       const aircraftPosition: L.LatLngTuple = [aircraft.lat, aircraft.lon];
 
-      // Draw completed route (from start to aircraft position)
       if (activeWaypointIndex >= 0) {
         const completedCoords = coordinates.slice(0, activeWaypointIndex + 1);
         completedCoords.push(aircraftPosition);
         
         const completedPolyline = L.polyline(completedCoords, {
-          color: '#00ff00', // Green for completed
+          color: '#00ff00',
           weight: 5,
           opacity: 0.7,
           dashArray: '10, 5',
@@ -369,12 +375,11 @@ const MapComponent: React.FC<MapComponentProps> = ({
         flightPlanLayerGroup.addLayer(completedPolyline);
       }
 
-      // Draw remaining route (from aircraft position to end)
       if (activeWaypointIndex >= 0 && activeWaypointIndex < coordinates.length) {
         const remainingCoords = [aircraftPosition, ...coordinates.slice(activeWaypointIndex + 1)];
         
         const remainingPolyline = L.polyline(remainingCoords, {
-          color: '#ff00ff', // Magenta for remaining
+          color: '#ff00ff',
           weight: 5,
           opacity: 0.7,
           dashArray: '10, 5',
@@ -382,7 +387,6 @@ const MapComponent: React.FC<MapComponentProps> = ({
         flightPlanLayerGroup.addLayer(remainingPolyline);
       }
 
-      // Fit bounds to entire route
       const fullPolyline = L.polyline(coordinates, { opacity: 0 });
       mapInstance.fitBounds(fullPolyline.getBounds(), { padding: [50, 50] });
     } catch (error) {

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeoFS ATC Radar
 // @namespace    http://tampermonkey.net/
-// @version      0.0.6
+// @version      0.0.7
 // @description  A ATC Radar for GeoFS which works like FlightRadar24.
 // @match        http://*/geofs.php*
 // @match        https://*/geofs.php*
@@ -13,7 +13,7 @@
 (function () {
   'use strict';
 
-  const API_URL = 'https://geofs-radar.vercel.app/api/atc/position';
+  const API_URL = 'http://localhost:3000/api/atc/position';
   const SEND_INTERVAL_MS = 5000;
 
   function log(...args) {
@@ -28,7 +28,7 @@
   let isFlightInfoSaved = false;
   let hasActiveViewers = false;
   let lastViewerCheckTime = 0;
-  const VIEWER_CHECK_INTERVAL = 15000;
+  const VIEWER_CHECK_INTERVAL = 10000;
 
   async function checkForActiveViewers() {
     try {
@@ -197,7 +197,7 @@
       squawk: flightInfo.squawk,
       flightPlan: flightPlan,
       nextWaypoint: geofs.flightPlan?.trackedWaypoint?.ident || null,
-      vspeed: geofs.autopilot?.values?.verticalSpeed || 0
+      vspeed: geofs.animation.values.verticalSpeed  || 0
     };
   }
 

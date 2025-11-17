@@ -22,7 +22,10 @@ const DynamicMapComponent = dynamic(
   }
 );
 
-const Sidebar = React.memo(({ aircraft }: { aircraft: PositionUpdate }) => {
+const Sidebar = React.memo(({ aircraft }: { aircraft: PositionUpdate & { altMSL?: number } }) => {
+    const altMSL = aircraft.altMSL ?? aircraft.alt;
+    const altAGL = aircraft.alt;
+
     const renderFlightPlan = useCallback(() => {
         if (!aircraft.flightPlan) return <p>Flight plan unavailable.</p>;
 
@@ -78,12 +81,13 @@ const Sidebar = React.memo(({ aircraft }: { aircraft: PositionUpdate }) => {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px', marginBottom: '15px', padding: '10px', border: '1px solid #333', borderRadius: '5px', backgroundColor: 'rgba(33, 37, 41, 0.5)' }}>
-                    <div><strong>Altitude:</strong> {aircraft.alt?.toFixed(0) || "0"} ft</div>
+                    <div><strong>Altitude MSL:</strong> {altMSL?.toFixed(0) || "0"} ft</div>
+                    <div><strong>Altitude AGL:</strong> {altAGL?.toFixed(0) || "0"} ft</div>
                     <div><strong>V-Speed:</strong> {aircraft.vspeed || "0"} ft/min</div>
                     <div><strong>Speed:</strong> {aircraft.speed?.toFixed(0)} kt</div>
                     <div><strong>Heading:</strong> {aircraft.heading?.toFixed(0)}°</div>
                     <div><strong>Squawk:</strong> {aircraft.squawk || 'N/A'}</div>
-                    <div><strong>Next Waypoint:</strong> {aircraft.nextWaypoint || ''}</div>
+                    <div style={{ gridColumn: '1 / -1' }}><strong>Next Waypoint:</strong> {aircraft.nextWaypoint || ''}</div>
                 </div>
 
                 {renderFlightPlan()}
