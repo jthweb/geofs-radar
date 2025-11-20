@@ -347,8 +347,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
       });
     }
 
-    const drawFlightPlan = (aircraft: PositionUpdate, shouldZoom: boolean = false) => {
-      if (!mapInstance || !aircraft.flightPlan || !flightPlanLayerGroup) return;
+    const drawFlightPlan = (aircraft: PositionUpdate, shouldZoom = false) => {
+        if (!mapInstance || !aircraft.flightPlan || !flightPlanLayerGroup) return;
 
       try {
         flightPlanLayerGroup.clearLayers();
