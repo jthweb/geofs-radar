@@ -9,7 +9,7 @@ import React, {
 } from 'react';
 import dynamic from 'next/dynamic';
 import { type PositionUpdate } from '~/lib/aircraft-store';
-import { useViewerTracker } from '~/hooks/use-viewer-counter';
+// import { useViewerTracker } from '~/hooks/use-viewer-counter';
 
 interface Airport {
   name: string;
@@ -62,16 +62,13 @@ const Sidebar = React.memo(
 
     const handleTouchEnd = () => {
       if (!isMobile || dragStart === null) return;
-      
-      // If dragged down more than 100px, collapse
+
       if (dragOffset > 100) {
         setIsExpanded(false);
-      }
-      // If dragged up more than 100px, expand
-      else if (dragOffset < -100) {
+      } else if (dragOffset < -100) {
         setIsExpanded(true);
       }
-      
+
       setDragStart(null);
       setDragOffset(0);
     };
@@ -129,8 +126,6 @@ const Sidebar = React.memo(
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor =
                     'rgba(255, 255, 255, 0.06)';
-                  e.currentTarget.style.borderColor =
-                    'rgba(59, 130, 246, 0.3)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor =
@@ -576,7 +571,7 @@ export default function ATCPage() {
     ((aircraft: PositionUpdate, shouldZoom?: boolean) => void) | null
   >(null);
 
-  useViewerTracker({ enabled: true });
+  // useViewerTracker({ enabled: true }); // Commented out this line to disable viewer tracking
 
   useEffect(() => {
     const checkMobile = () => {
