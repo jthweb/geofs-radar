@@ -203,11 +203,13 @@ const getRadarAircraftDivIcon = (
   const headingLineLength = 15;
   const labelHeight = 35;
   const labelWidth = 100;
-  const labelOffsetFromDot = 10;
+  const labelOffsetFromLine = 5; // Space between end of heading line and start of label
 
-  const totalWidth = dotSize + headingLineLength + labelOffsetFromDot + labelWidth;
+  // The overall icon anchor will be at the center of the radar dot
+  const totalWidth = dotSize / 2 + headingLineLength + labelOffsetFromLine + labelWidth;
   const totalHeight = Math.max(dotSize, labelHeight);
 
+  // Anchor at the center of the radar dot
   const anchorX = dotSize / 2;
   const anchorY = totalHeight / 2;
 
@@ -238,11 +240,14 @@ const getRadarAircraftDivIcon = (
         position: relative;
         width: ${totalWidth}px;
         height: ${totalHeight}px;
+        /* Adjust global position so that the dot is at the iconAnchor */
+        transform: translate(-${anchorX}px, -${anchorY}px);
       ">
+        <!-- Radar Dot -->
         <div style="
           position: absolute;
-          top: ${(totalHeight - dotSize) / 2}px;
-          left: 0;
+          top: ${(totalHeight - dotSize) / 2}px; /* Center dot vertically */
+          left: 0; /* Align left edge of dot with local (0,0) of this container */
           width: ${dotSize}px;
           height: ${dotSize}px;
           background-color: #00ff00;
@@ -251,22 +256,25 @@ const getRadarAircraftDivIcon = (
           z-index: 2;
         "></div>
 
+        <!-- Heading Line -->
         <div style="
           position: absolute;
-          top: ${totalHeight / 2 - 1}px;
-          left: ${dotSize / 2}px;
+          /* Start the line precisely from the center of the dot */
+          top: ${totalHeight / 2 - 1}px; /* Y-center of the dot - half line height */
+          left: ${dotSize / 2}px; /* X-center of the dot */
           width: ${headingLineLength}px;
           height: 2px;
           background-color: #00ff00;
-          transform-origin: 0% 50%;
+          transform-origin: 0% 50%; /* Rotate around its leftmost point (which is now dot center) */
           transform: rotate(${aircraft.heading || 0}deg);
           z-index: 1;
         "></div>
 
+        <!-- Aircraft Label -->
         <div class="aircraft-label" style="
           position: absolute;
-          top: ${(totalHeight - labelHeight) / 2}px;
-          left: ${dotSize + headingLineLength / 2 + labelOffsetFromDot}px;
+          top: ${(totalHeight - labelHeight) / 2}px; /* Center label vertically */
+          left: ${dotSize / 2 + headingLineLength + labelOffsetFromLine}px; /* Offset from end of heading line */
           width: ${labelWidth}px;
           padding: 2px 4px;
           background-color: rgba(0, 0, 0, 0.6);
