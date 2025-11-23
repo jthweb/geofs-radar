@@ -811,16 +811,14 @@ const MapComponent: React.FC<MapComponentProps> = ({
         }
       );
 
-      openAIPLayer = L.tileLayer(
-        'https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=409a25682b90c26541b6c25493950e17',
-        {
-          attribution: '&copy; <a href="https://www.openaip.net/">OpenAIP</a>',
-          maxZoom: 19,
-          minZoom: 3,
-          noWrap: true,
-          bounds: worldBounds,
-        }
-      );
+      const openAIPUrl = `https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=${process.env.OPENAIP_API_KEY}`;
+      openAIPLayer = L.tileLayer(openAIPUrl, {
+        attribution: '&copy; <a href="https://www.openaip.net/">OpenAIP</a>',
+        maxZoom: 19,
+        minZoom: 3,
+        noWrap: true,
+        bounds: worldBounds,
+      });
 
       satelliteHybridLayer.addTo(mapInstance);
 
