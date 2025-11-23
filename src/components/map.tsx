@@ -205,7 +205,7 @@ const getRadarAircraftDivIcon = (
   const labelWidth = 100;
   const labelOffsetFromDot = 10;
 
-  const totalWidth = dotSize / 2 + headingLineLength + labelOffsetFromDot + labelWidth;
+  const totalWidth = dotSize + headingLineLength + labelOffsetFromDot + labelWidth;
   const totalHeight = Math.max(dotSize, labelHeight);
 
   const anchorX = dotSize / 2;
@@ -225,7 +225,10 @@ const getRadarAircraftDivIcon = (
       ${aircraft.callsign || aircraft.flightNo || 'N/A'}
     </div>
     <div>
-      ${displayAlt} ${aircraft.speed.toFixed(0)}kt
+      ${displayAlt} HDG ${aircraft.heading.toFixed(0)}°
+    </div>
+    <div>
+      ${aircraft.speed.toFixed(0)}kt
     </div>
   `;
 
@@ -235,7 +238,6 @@ const getRadarAircraftDivIcon = (
         position: relative;
         width: ${totalWidth}px;
         height: ${totalHeight}px;
-        transform: translate(-${anchorX}px, -${anchorY}px);
       ">
         <div style="
           position: absolute;
@@ -264,7 +266,7 @@ const getRadarAircraftDivIcon = (
         <div class="aircraft-label" style="
           position: absolute;
           top: ${(totalHeight - labelHeight) / 2}px;
-          left: ${dotSize / 2 + headingLineLength + labelOffsetFromDot}px;
+          left: ${dotSize + headingLineLength / 2 + labelOffsetFromDot}px;
           width: ${labelWidth}px;
           padding: 2px 4px;
           background-color: rgba(0, 0, 0, 0.6);
@@ -1071,7 +1073,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
       map.off('mouseup', handleMouseUp);
       map.dragging.enable();
       map.getContainer().style.cursor = '';
-    }
+    };
 
     return () => {
       map.off('mousedown', handleMouseDown);
