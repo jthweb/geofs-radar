@@ -1288,11 +1288,9 @@ const MapComponent: React.FC<MapComponentProps> = ({
         @keyframes emergency-plane-pulse {
           0% {
             box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
-            transform: rotateZ(${aircraft.heading || 0}deg) scale(1);
           }
           100% {
             box-shadow: 0 0 15px #ff0000, 0 0 25px #ff0000, 0 0 30px #ff0000;
-            transform: rotateZ(${aircraft.heading || 0}deg) scale(1.1);
           }
         }
 
