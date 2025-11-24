@@ -15,8 +15,8 @@ A Flightradar24-type radar display for the GeoFS. This is a fork of the original
 - [GeoFS-Chart](https://github.com/mansoorbarri/geofs-charts) works on the radar screen 
 
 ## Installation 
-- Install the mod: https://mansoorbarri.com/radar
-- View the radar: https://geofs-radar.vercel.app/
+- Install the mod: https://xyzmani.com/radar
+- View the radar: https://radar.xyzmani.com/
 
 ## Usage
 - Once you install the mod, you will see a popup on the right side of your screen 
