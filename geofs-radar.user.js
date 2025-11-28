@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeoFS ATC Radar
 // @namespace    http://tampermonkey.net/
-// @version      1.0.6
+// @version      1.0.7
 // @description  An ATC Radar for GeoFS which works like FlightRadar24.
 // @match        http://*/geofs.php*
 // @match        https://*/geofs.php*
@@ -14,7 +14,8 @@
   'use strict';
 
   const API_URL = 'https://radar.xyzmani.com/api/atc/position';
-  const SEND_INTERVAL_MS = 10000;
+  const CF_API_URL = "https://geofs-radar.mansoor-eb-ak.workers.dev/api/atc/position"
+  const SEND_INTERVAL_MS = 5000;
 
   const UI_CONTAINER_ID = 'geofs-atc-radar-flightInfoUI';
   const DEP_INPUT_ID = 'atc-depInput';
@@ -37,9 +38,9 @@
     console.log('[ATC-Reporter]', ...args);
   }
 
-  async function sendToAPI(payload) {
+  async function sendToAPI(payload, apiUrl) {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -198,7 +199,8 @@
     const snap = readSnapshot();
     if (!snap) return;
     const payload = buildPayload(snap);
-    await sendToAPI(payload);
++    await sendToAPI(payload, API_URL);
++    await sendToAPI(payload, CF_API_URL);
   }, SEND_INTERVAL_MS);
 
   function showToast(msg, isError = false) {
