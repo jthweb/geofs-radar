@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeoFS ATC Radar
 // @namespace    http://tampermonkey.net/
-// @version      1.0.5
+// @version      1.0.6
 // @description  An ATC Radar for GeoFS which works like FlightRadar24.
 // @match        http://*/geofs.php*
 // @match        https://*/geofs.php*
