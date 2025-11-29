@@ -6,6 +6,6 @@
 // @Author       Mansoor Barri
 // @match        http://*/geofs.php*
 // @match        https://*/geofs.php*
-// @require      https://raw.githubusercontent.com/mansoorbarri/geofs-radar/main/geofs-radar.user.js?nocache=1
+// @require      https://raw.githubusercontent.com/mansoorbarri/geofs-radar/main/userscript.js?nocache=1
 // @grant        none
 // ==/UserScript==
