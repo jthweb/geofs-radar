@@ -1,4 +1,3 @@
-// hooks/useAircraftStream.ts
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { type PositionUpdate } from '~/lib/aircraft-store';
 
@@ -19,14 +18,17 @@ export const useAircraftStream = () => {
       eventSourceRef.current.close();
     }
 
-    console.log('Connecting to SSE stream...');
     setConnectionStatus('connecting');
 
-    const eventSource = new EventSource('/api/atc/stream');
+    const eventSourceUrl =
+      process.env.NODE_ENV === 'development'
+        ? 'https://radar.xyzmani.com/api/atc/stream'
+        : '/api/atc/stream';
+
+    const eventSource = new EventSource(eventSourceUrl);
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
-      console.log('✓ SSE connection established');
       setConnectionStatus('connected');
       setError(null);
       reconnectAttempts.current = 0;
@@ -46,12 +48,10 @@ export const useAircraftStream = () => {
         setIsLoading(false);
         setError(null);
       } catch (e) {
-        console.error('Error parsing SSE data:', e);
       }
     };
 
     eventSource.onerror = () => {
-      console.error('SSE connection error');
       setConnectionStatus('disconnected');
       eventSource.close();
 
@@ -64,7 +64,6 @@ export const useAircraftStream = () => {
       setError(`Connection lost. Reconnecting in ${backoffTime / 1000}s...`);
 
       reconnectTimeoutRef.current = setTimeout(() => {
-        console.log(`Reconnect attempt #${reconnectAttempts.current}`);
         connectToStream();
       }, backoffTime);
     };
