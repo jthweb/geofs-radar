@@ -3,11 +3,11 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { type PositionUpdate } from '~/lib/aircraft-store';
 
-import { useMapInitialization } from '~/components/map/useMapInitialization';
-import { useFlightPlanDrawing } from '~/components/map/useFlightPlanDrawing';
-import { useMapLayersAndMarkers } from '~/components/map/useMapLayersAndMarkers';
-import { useSelectedAirportHandling } from '~/components/map/useSelectedAirportHandling'; 
-import { useHeadingModeInteraction } from '~/components/map/useHeadingModeInteraction';
+import { useMapInitialization } from './useMapInitialization';
+import { useFlightPlanDrawing } from './useFlightPlanDrawing';
+import { useMapLayersAndMarkers } from './useMapLayersAndMarkers';
+import { useSelectedAirportHandling } from './useSelectedAirportHandling';
+import { useHeadingModeInteraction } from './useHeadingModeInteraction';
 import {
   HeadingModeControl,
   RadarModeControl,
@@ -51,7 +51,39 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const radarControlRef = useRef<RadarModeControl | null>(null);
   const openAIPControlRef = useRef<OpenAIPControl | null>(null);
 
-  const onMapClick = useCallback(
+  const mapRefs = useMapInitialization({
+    mapContainerId: 'map-container',
+    setIsHeadingMode,
+    setIsRadarMode,
+    setIsOpenAIPEnabled,
+    onMapClick: (e: L.LeafletMouseEvent) => {
+      const target = e.originalEvent.target as HTMLElement;
+      if (
+        !target.closest('.leaflet-marker-icon') &&
+        !target.closest('.leaflet-popup-pane') &&
+        !target.closest('.leaflet-control') &&
+        mapRefs.flightPlanLayerGroup.current &&
+        mapRefs.historyLayerGroup.current
+      ) {
+        mapRefs.flightPlanLayerGroup.current.clearLayers();
+        mapRefs.historyLayerGroup.current.clearLayers();
+      }
+    },
+    setHeadingControlRef: headingControlRef,
+    setRadarControlRef: radarControlRef,
+    setOpenAIPControlRef: openAIPControlRef,
+  });
+
+  const { drawFlightPlan, currentSelectedAircraftRef } = useFlightPlanDrawing({
+    mapInstance: mapRefs.mapInstance,
+    flightPlanLayerGroup: mapRefs.flightPlanLayerGroup,
+    historyLayerGroup: mapRefs.historyLayerGroup,
+    isRadarMode,
+    onAircraftSelect,
+    setSelectedAircraftId,
+  });
+
+  const stableOnMapClick = useCallback(
     (e: L.LeafletMouseEvent) => {
       const target = e.originalEvent.target as HTMLElement;
       if (
@@ -68,28 +100,21 @@ const MapComponent: React.FC<MapComponentProps> = ({
         onAircraftSelect(null);
       }
     },
-    [onAircraftSelect],
+    [onAircraftSelect, mapRefs, currentSelectedAircraftRef, setSelectedAircraftId]
   );
 
-  const mapRefs = useMapInitialization({
-    mapContainerId: 'map-container',
-    setIsHeadingMode,
-    setIsRadarMode,
-    setIsOpenAIPEnabled,
-    onMapClick,
-    setHeadingControlRef: headingControlRef,
-    setRadarControlRef: radarControlRef,
-    setOpenAIPControlRef: openAIPControlRef,
-  });
+  useEffect(() => {
+    if (mapRefs.mapInstance.current) {
+      mapRefs.mapInstance.current.off('click');
+      mapRefs.mapInstance.current.on('click', stableOnMapClick);
+    }
+    return () => {
+      if (mapRefs.mapInstance.current) {
+        mapRefs.mapInstance.current.off('click', stableOnMapClick);
+      }
+    };
+  }, [mapRefs.mapInstance, stableOnMapClick]);
 
-  const { drawFlightPlan, currentSelectedAircraftRef } = useFlightPlanDrawing({
-    mapInstance: mapRefs.mapInstance,
-    flightPlanLayerGroup: mapRefs.flightPlanLayerGroup,
-    historyLayerGroup: mapRefs.historyLayerGroup,
-    isRadarMode,
-    onAircraftSelect,
-    setSelectedAircraftId,
-  });
 
   useMapLayersAndMarkers({
     mapInstance: mapRefs.mapInstance,

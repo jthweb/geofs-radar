@@ -1,7 +1,7 @@
 // hooks/useMobileDetection.ts
 import { useState, useEffect } from 'react';
 
-export const useMobileDetection = (breakpoint: number = 768) => {
+export const useMobileDetection = (breakpoint = 768) => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {

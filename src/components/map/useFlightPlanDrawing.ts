@@ -129,19 +129,9 @@ export const useFlightPlanDrawing = ({
           console.error('Error parsing flight plan:', error);
         }
       }
-
-      // TODO: Add zoom logic if needed, ensure mapInstance is available
-      // if (shouldZoom) {
-      //   const allBounds: L.LatLng[] = [];
-      //   // ... add current position, history, waypoints to allBounds
-      //   if (allBounds.length > 0 && mapInstance.current) {
-      //     const bounds = L.latLngBounds(allBounds);
-      //     mapInstance.current.fitBounds(bounds, { padding: [50, 50] });
-      //   }
-      // }
     },
-    [isRadarMode, onAircraftSelect, setSelectedAircraftId, mapInstance, flightPlanLayerGroup, historyLayerGroup],
+    [isRadarMode, setSelectedAircraftId, mapInstance, flightPlanLayerGroup, historyLayerGroup],
   );
 
   return { drawFlightPlan, currentSelectedAircraftRef };
-};1
+};
