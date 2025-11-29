@@ -115,7 +115,8 @@ const RadarActiveWaypointIcon = L.divIcon({
 });
 
 const getAircraftDivIcon = (
-  aircraft: PositionUpdate & { altMSL?: number }
+  aircraft: PositionUpdate & { altMSL?: number },
+  selectedAircraftId: string | null, // Added parameter
 ) => {
   const iconUrl = 'https://i.ibb.co/6cNhyMMj/1.png';
   const planeSize = 30;
@@ -139,6 +140,9 @@ const getAircraftDivIcon = (
       : `${altAGL.toFixed(0)}ft AGL`;
 
   const isEmergency = aircraft.squawk && EMERGENCY_SQUAWKS.has(aircraft.squawk);
+
+  const isCurrentAircraftSelected =
+    selectedAircraftId && (aircraft.id === selectedAircraftId || aircraft.callsign === selectedAircraftId);
 
   const planeStyle = `
     position: absolute;
@@ -179,6 +183,7 @@ const getAircraftDivIcon = (
     z-index: 1000;
     pointer-events: none;
     ${isEmergency ? 'border: 1px solid white;' : ''}
+    ${selectedAircraftId && !isCurrentAircraftSelected ? 'visibility: hidden;' : ''} /* Hide if other aircraft is selected */
   `;
 
   const detailContent = `
@@ -220,7 +225,8 @@ const getAircraftDivIcon = (
 };
 
 const getRadarAircraftDivIcon = (
-  aircraft: PositionUpdate & { altMSL?: number }
+  aircraft: PositionUpdate & { altMSL?: number },
+  selectedAircraftId: string | null, // Added parameter
 ) => {
   const dotSize = 8;
   const headingLineLength = 15;
@@ -248,6 +254,9 @@ const getRadarAircraftDivIcon = (
       : `${altAGL.toFixed(0)}AGL`;
 
   const isEmergency = aircraft.squawk && EMERGENCY_SQUAWKS.has(aircraft.squawk);
+
+  const isCurrentAircraftSelected =
+    selectedAircraftId && (aircraft.id === selectedAircraftId || aircraft.callsign === selectedAircraftId);
 
   const dotColor = isEmergency ? '#ff0000' : '#00ff00';
   const lineColor = isEmergency ? '#ff0000' : '#00ff00';
@@ -299,6 +308,7 @@ const getRadarAircraftDivIcon = (
     z-index: 1000;
     pointer-events: none;
     ${isEmergency ? 'font-weight: bold;' : ''}
+    ${selectedAircraftId && !isCurrentAircraftSelected ? 'visibility: hidden;' : ''} /* Hide if other aircraft is selected */
   `;
 
   const detailContent = `
@@ -658,6 +668,9 @@ const MapComponent: React.FC<MapComponentProps> = ({
   const [isHeadingMode, setIsHeadingMode] = useState<boolean>(false);
   const [isRadarMode, setIsRadarMode] = useState<boolean>(false);
   const [isOpenAIPEnabled, setIsOpenAIPEnabled] = useState<boolean>(false);
+  const [selectedAircraftId, setSelectedAircraftId] = useState<string | null>(
+    null
+  );
 
   const headingStartPointRef = useRef<L.LatLng | null>(null);
   const headingLineRef = useRef<L.Polyline | null>(null);
@@ -689,7 +702,9 @@ const MapComponent: React.FC<MapComponentProps> = ({
       try {
         flightPlanLayerGroup.clearLayers();
         historyLayerGroup.clearLayers();
-        currentSelectedAircraftRef.current = aircraft.id || aircraft.callsign;
+        const newSelectedAircraftId = aircraft.id || aircraft.callsign;
+        currentSelectedAircraftRef.current = newSelectedAircraftId;
+        setSelectedAircraftId(newSelectedAircraftId); // Update selectedAircraftId state
 
         const aircraftId = aircraft.id || aircraft.callsign;
         const history = aircraftHistoryRef.current.get(aircraftId) || [];
@@ -894,6 +909,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
           flightPlanLayerGroup.clearLayers();
           historyLayerGroup.clearLayers();
           currentSelectedAircraftRef.current = null;
+          setSelectedAircraftId(null); // Clear selectedAircraftId
           hasZoomedToFlightPlan.current = false;
           onAircraftSelect(null);
         }
@@ -1020,8 +1036,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
 
       aircrafts.forEach((aircraft) => {
         const icon = isRadarMode
-          ? getRadarAircraftDivIcon(aircraft)
-          : getAircraftDivIcon(aircraft);
+          ? getRadarAircraftDivIcon(aircraft, selectedAircraftId) // Pass selectedAircraftId
+          : getAircraftDivIcon(aircraft, selectedAircraftId); // Pass selectedAircraftId
 
         const marker = L.marker([aircraft.lat, aircraft.lon], {
           title: aircraft.callsign,
@@ -1054,6 +1070,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
     setDrawFlightPlanOnMap,
     isRadarMode,
     isOpenAIPEnabled,
+    selectedAircraftId, // Add selectedAircraftId to dependencies
   ]);
 
   useEffect(() => {
