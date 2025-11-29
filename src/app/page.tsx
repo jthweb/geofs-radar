@@ -80,7 +80,7 @@ const Sidebar = React.memo(
     );
 
     const getPhaseIconComponent = (phase: string) => {
-      const iconProps = { size: 24, strokeWidth: 1.5, color: '#fff' }; // Common props for icons
+      const iconProps = { size: 24, strokeWidth: 1.5, color: '#fff' };
       switch (phase) {
         case 'onGround':
           return <TbPlane {...iconProps} />;
@@ -89,7 +89,7 @@ const Sidebar = React.memo(
         case 'cruising':
           return <TbPlaneInflight {...iconProps} />;
         case 'descending':
-          return <TbPlaneArrival {...iconProps} />; // Can reuse for landing/descending
+          return <TbPlaneArrival {...iconProps} />;
         case 'landing':
           return <TbPlaneArrival {...iconProps} />;
         default:
@@ -368,7 +368,6 @@ const Sidebar = React.memo(
             overflowY: isMobile && !isExpanded ? 'hidden' : 'auto',
           }}
         >
-          {/* Flight Number Block (remains at the top) */}
           <div
             style={{
               padding: '14px',
@@ -394,7 +393,6 @@ const Sidebar = React.memo(
             </div>
           </div>
 
-          {/* New container for From - Icon - To */}
           <div
             style={{
               display: 'flex',
@@ -403,7 +401,6 @@ const Sidebar = React.memo(
               gap: '10px',
             }}
           >
-            {/* From Airport */}
             <div
               style={{
                 flex: 1,
@@ -414,24 +411,11 @@ const Sidebar = React.memo(
                 textAlign: 'center',
               }}
             >
-              {/* <div
-                style={{
-                  fontSize: '11px',
-                  color: 'rgba(255,255,255,0.6)',
-                  marginBottom: '4px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  fontWeight: '600',
-                }}
-              >
-                From
-              </div> */}
               <div style={{ fontSize: '16px', fontWeight: '600' }}>
                 {aircraft.departure || 'UNK'}
               </div>
             </div>
 
-            {/* Airplane Icon and Status */}
             <div
               style={{
                 display: 'flex',
@@ -441,7 +425,7 @@ const Sidebar = React.memo(
                 padding: '0 5px',
                 flexShrink: 0,
                 width: '60px',
-                color: '#fff', // Ensure the icons are white
+                color: '#fff',
               }}
             >
               {getPhaseIconComponent(currentFlightPhase)}
@@ -459,7 +443,6 @@ const Sidebar = React.memo(
               </span>
             </div>
 
-            {/* To Airport */}
             <div
               style={{
                 flex: 1,
@@ -470,18 +453,6 @@ const Sidebar = React.memo(
                 textAlign: 'center',
               }}
             >
-              {/* <div
-                style={{
-                  fontSize: '11px',
-                  color: 'rgba(255,255,255,0.6)',
-                  marginBottom: '4px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  fontWeight: '600',
-                }}
-              >
-                To
-              </div> */}
               <div style={{ fontSize: '16px', fontWeight: '600' }}>
                 {aircraft.arrival || 'UNK'}
               </div>
@@ -809,7 +780,8 @@ export default function ATCPage() {
         ac.callsign?.toLowerCase().includes(lowerCaseSearchTerm) ||
         ac.flightNo?.toLowerCase().includes(lowerCaseSearchTerm) ||
         ac.departure?.toLowerCase().includes(lowerCaseSearchTerm) ||
-        ac.arrival?.toLowerCase().includes(lowerCaseSearchTerm)
+        ac.arrival?.toLowerCase().includes(lowerCaseSearchTerm) ||
+        (ac.squawk && ac.squawk.toLowerCase().includes(lowerCaseSearchTerm))
       ) {
         results.push(ac);
       }
@@ -867,7 +839,7 @@ export default function ATCPage() {
       >
         <input
           type="text"
-          placeholder="Search callsign, flight, or ICAO..."
+          placeholder="Search callsign, flight, ICAO, or squawk..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
