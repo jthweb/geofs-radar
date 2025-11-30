@@ -11,6 +11,8 @@ import { ConnectionStatusIndicator } from "~/components/atc/connectionStatusIndi
 import { SearchBar } from "~/components/atc/searchbar";
 import { Sidebar } from "~/components/atc/sidebar";
 import Loading from "~/components/loading";
+import { useUtcTime } from "~/hooks/useUtcTime";
+import { useTimer } from "~/hooks/useTimer";
 
 interface Airport {
   name: string;
@@ -41,6 +43,11 @@ export default function ATCPage() {
     aircrafts,
     airports,
   );
+  const time = useUtcTime();
+  const { formattedTime, isRunning, start, stop, reset } = useTimer();
+
+  const [showTimerPopup, setShowTimerPopup] = useState(false);
+
   const drawFlightPlanOnMapRef = useRef<
     ((aircraft: PositionUpdate, shouldZoom?: boolean) => void) | null
   >(null);
@@ -50,6 +57,7 @@ export default function ATCPage() {
     },
     [],
   );
+
   const handleAircraftSelect = useCallback(
     (aircraft: PositionUpdate | null) => {
       setSelectedAircraft(aircraft);
@@ -58,9 +66,11 @@ export default function ATCPage() {
     },
     [],
   );
+
   const handleWaypointClick = useCallback((_waypoint: any, index: number) => {
     setSelectedWaypointIndex(index);
   }, []);
+
   const handleSearchBarAircraftSelect = useCallback(
     (aircraft: PositionUpdate) => {
       setSelectedAircraft(aircraft);
@@ -70,6 +80,7 @@ export default function ATCPage() {
     },
     [setSearchTerm],
   );
+
   const handleSearchBarAirportSelect = useCallback(
     (airport: Airport) => {
       setSelectedAirport(airport);
@@ -79,6 +90,7 @@ export default function ATCPage() {
     },
     [setSearchTerm],
   );
+
   useEffect(() => {
     if (selectedAircraft && aircrafts.length > 0) {
       const updatedAircraft = aircrafts.find(
@@ -94,13 +106,16 @@ export default function ATCPage() {
       }
     }
   }, [aircrafts, selectedAircraft]);
+
   const selectedAirportFromSearch = searchResults.find(
     (r) =>
       !("callsign" in r) &&
       searchTerm &&
       r.icao.toLowerCase() === searchTerm.toLowerCase(),
   ) as Airport | undefined;
+
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+
   return (
     <div
       style={{
@@ -131,6 +146,7 @@ export default function ATCPage() {
           />
         </div>
       )}
+
       <div
         style={{
           position: "absolute",
@@ -139,11 +155,9 @@ export default function ATCPage() {
           zIndex: 10000,
         }}
       >
-        <ConnectionStatusIndicator
-          status={connectionStatus}
-          isMobile={isMobile}
-        />
+        <ConnectionStatusIndicator status={connectionStatus} isMobile={isMobile} />
       </div>
+
       <div
         style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
       >
@@ -161,6 +175,96 @@ export default function ATCPage() {
           />
         )}
       </div>
+
+      {/* UTC TIME + POPUP TIMER */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 25,
+          right: 10,
+          zIndex: 10001,
+          color: "#fff",
+          fontFamily: "monospace",
+          cursor: "pointer",
+          userSelect: "none",
+          fontSize: "15px",
+        }}
+        onClick={() => setShowTimerPopup((p) => !p)}
+      >
+        {time} UTC
+      </div>
+
+      {showTimerPopup && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 50,
+            right: 10,
+            backgroundColor: "#1f2937",
+            color: "#fff",
+            padding: "10px",
+            borderRadius: "6px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+            fontFamily: "monospace",
+            width: "160px",
+            textAlign: "center",
+            zIndex: 10002,
+          }}
+        >
+          <div style={{ marginBottom: "6px" }}>{formattedTime}</div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "4px",
+            }}
+          >
+            {isRunning ? (
+              <button
+                onClick={stop}
+                style={{
+                  background: "#ef4444",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "2px 6px",
+                  cursor: "pointer",
+                }}
+              >
+                Stop
+              </button>
+            ) : (
+              <button
+                onClick={start}
+                style={{
+                  background: "#22c55e",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "2px 6px",
+                  cursor: "pointer",
+                }}
+              >
+                Start
+              </button>
+            )}
+            <button
+              onClick={reset}
+              style={{
+                background: "#3b82f6",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                padding: "2px 6px",
+                cursor: "pointer",
+              }}
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      )}
+
       {selectedAircraft && (
         <div
           style={{
