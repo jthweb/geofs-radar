@@ -45,6 +45,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
   onAircraftSelect,
   selectedAirport,
   setDrawFlightPlanOnMap,
+  onMapReady,
 }) => {
   const [isHeadingMode, setIsHeadingMode] = useState(false);
   const [isRadarMode, setIsRadarMode] = useState(false);
@@ -177,6 +178,13 @@ const MapComponent: React.FC<MapComponentProps> = ({
   useEffect(() => {
     setDrawFlightPlanOnMap(drawFlightPlan);
   }, [drawFlightPlan, setDrawFlightPlanOnMap]);
+
+  // Notify parent that map is ready
+  useEffect(() => {
+    if (mapRefs.mapInstance.current && onMapReady) {
+      onMapReady();
+    }
+  }, [mapRefs.mapInstance, onMapReady]);
 
   const metar = useMetarOverlay(
     mapRefs.mapInstance,

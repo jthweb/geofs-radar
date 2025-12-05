@@ -171,6 +171,8 @@ export const useMapLayersAndMarkers = ({
   ]);
 
   // Effect for managing airport markers
+  // COMMENTED OUT - Uncomment to show airports on map
+  /*
   useEffect(() => {
     if (!airportMarkersLayer.current) return;
 
@@ -224,4 +226,5 @@ export const useMapLayersAndMarkers = ({
         });
     });
   }, [airports, isRadarMode, airportMarkersLayer]);
+  */
 };
