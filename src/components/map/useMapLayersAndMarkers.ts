@@ -15,11 +15,13 @@ interface UseMapLayersAndMarkersProps {
   mapInstance: React.MutableRefObject<L.Map | null>;
   aircraftMarkersLayer: React.MutableRefObject<L.LayerGroup | null>;
   airportMarkersLayer: React.MutableRefObject<L.LayerGroup | null>;
+  osmLayer: React.MutableRefObject<L.TileLayer | null>;
   satelliteHybridLayer: React.MutableRefObject<L.TileLayer | null>;
   radarBaseLayer: React.MutableRefObject<L.TileLayer | null>;
   openAIPLayer: React.MutableRefObject<L.TileLayer | null>;
   aircrafts: PositionUpdate[];
   airports: Airport[];
+  isOSMMode: boolean;
   isRadarMode: boolean;
   isOpenAIPEnabled: boolean;
   selectedAircraftId: string | null;
@@ -32,11 +34,13 @@ export const useMapLayersAndMarkers = ({
   mapInstance,
   aircraftMarkersLayer,
   airportMarkersLayer,
+  osmLayer,
   satelliteHybridLayer,
   radarBaseLayer,
   openAIPLayer,
   aircrafts,
   airports,
+  isOSMMode,
   isRadarMode,
   isOpenAIPEnabled,
   selectedAircraftId,
@@ -44,31 +48,38 @@ export const useMapLayersAndMarkers = ({
   drawFlightPlan,
   onAircraftSelect,
 }: UseMapLayersAndMarkersProps) => {
-  // Effect for managing base layers (Radar/Satellite)
+  // Effect for managing base layers (OSM/Satellite/Radar)
   useEffect(() => {
     if (
       !mapInstance.current ||
+      !osmLayer.current ||
       !satelliteHybridLayer.current ||
       !radarBaseLayer.current
     )
       return;
 
-    if (isRadarMode) {
-      if (mapInstance.current.hasLayer(satelliteHybridLayer.current)) {
-        mapInstance.current.removeLayer(satelliteHybridLayer.current);
-      }
-      if (!mapInstance.current.hasLayer(radarBaseLayer.current)) {
-        mapInstance.current.addLayer(radarBaseLayer.current);
-      }
-    } else {
-      if (mapInstance.current.hasLayer(radarBaseLayer.current)) {
-        mapInstance.current.removeLayer(radarBaseLayer.current);
-      }
-      if (!mapInstance.current.hasLayer(satelliteHybridLayer.current)) {
-        mapInstance.current.addLayer(satelliteHybridLayer.current);
-      }
+    const map = mapInstance.current;
+
+    // Remove all base layers first
+    if (map.hasLayer(osmLayer.current)) {
+      map.removeLayer(osmLayer.current);
     }
-  }, [mapInstance, isRadarMode, satelliteHybridLayer, radarBaseLayer]);
+    if (map.hasLayer(satelliteHybridLayer.current)) {
+      map.removeLayer(satelliteHybridLayer.current);
+    }
+    if (map.hasLayer(radarBaseLayer.current)) {
+      map.removeLayer(radarBaseLayer.current);
+    }
+
+    // Add the appropriate base layer
+    if (isRadarMode) {
+      map.addLayer(radarBaseLayer.current);
+    } else if (isOSMMode) {
+      map.addLayer(osmLayer.current);
+    } else {
+      map.addLayer(satelliteHybridLayer.current);
+    }
+  }, [mapInstance, isOSMMode, isRadarMode, osmLayer, satelliteHybridLayer, radarBaseLayer]);
 
   // Effect for managing OpenAIP layer
   useEffect(() => {

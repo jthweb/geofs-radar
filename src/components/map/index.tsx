@@ -10,6 +10,7 @@ import { useHeadingModeInteraction } from "./useHeadingModeInteraction";
 import {
   HeadingModeControl,
   RadarModeControl,
+  OSMControl,
   OpenAIPControl,
   WeatherOverlayControl,
 } from "~/components/map/MapControls";
@@ -47,6 +48,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
 }) => {
   const [isHeadingMode, setIsHeadingMode] = useState(false);
   const [isRadarMode, setIsRadarMode] = useState(false);
+  const [isOSMMode, setIsOSMMode] = useState(false);
   const [isOpenAIPEnabled, setIsOpenAIPEnabled] = useState(false);
   const [isWeatherOverlayEnabled, setIsWeatherOverlayEnabled] = useState(false);
   const [selectedAircraftId, setSelectedAircraftId] = useState<string | null>(
@@ -57,6 +59,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
 
   const headingControlRef = useRef<HeadingModeControl | null>(null);
   const radarControlRef = useRef<RadarModeControl | null>(null);
+  const osmControlRef = useRef<OSMControl | null>(null);
   const openAIPControlRef = useRef<OpenAIPControl | null>(null);
   const weatherControlRef = useRef<WeatherOverlayControl | null>(null);
 
@@ -69,12 +72,14 @@ const MapComponent: React.FC<MapComponentProps> = ({
     mapContainerId: "map-container",
     setIsHeadingMode,
     setIsRadarMode,
+    setIsOSMMode,
     setIsOpenAIPEnabled,
     setIsWeatherOverlayEnabled,
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     onMapClick: useCallback((e: L.LeafletMouseEvent) => {}, []),
     setHeadingControlRef: headingControlRef,
     setRadarControlRef: radarControlRef,
+    setOSMControlRef: osmControlRef,
     setOpenAIPControlRef: openAIPControlRef,
     setWeatherControlRef: weatherControlRef,
   });
@@ -124,11 +129,13 @@ const MapComponent: React.FC<MapComponentProps> = ({
     mapInstance: mapRefs.mapInstance,
     aircraftMarkersLayer: mapRefs.aircraftMarkersLayer,
     airportMarkersLayer: mapRefs.airportMarkersLayer,
+    osmLayer: mapRefs.osmLayer,
     satelliteHybridLayer: mapRefs.satelliteHybridLayer,
     radarBaseLayer: mapRefs.radarBaseLayer,
     openAIPLayer: mapRefs.openAIPLayer,
     aircrafts,
     airports,
+    isOSMMode,
     isRadarMode,
     isOpenAIPEnabled,
     selectedAircraftId,
@@ -159,11 +166,13 @@ const MapComponent: React.FC<MapComponentProps> = ({
       headingControlRef.current.updateState(isHeadingMode);
     if (radarControlRef.current)
       radarControlRef.current.updateState(isRadarMode);
+    if (osmControlRef.current)
+      osmControlRef.current.updateState(isOSMMode);
     if (openAIPControlRef.current)
       openAIPControlRef.current.updateState(isOpenAIPEnabled);
     if (weatherControlRef.current)
       weatherControlRef.current.updateState(isWeatherOverlayEnabled);
-  }, [isHeadingMode, isRadarMode, isOpenAIPEnabled, isWeatherOverlayEnabled]);
+  }, [isHeadingMode, isRadarMode, isOSMMode, isOpenAIPEnabled, isWeatherOverlayEnabled]);
 
   useEffect(() => {
     setDrawFlightPlanOnMap(drawFlightPlan);
