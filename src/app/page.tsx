@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from "react";
 import dynamic from "next/dynamic";
 import { type PositionUpdate } from "~/lib/aircraft-store";
 import { useMobileDetection } from "~/hooks/useMobileDetection";
@@ -13,6 +19,14 @@ import { Sidebar } from "~/components/atc/sidebar";
 import Loading from "~/components/loading";
 import { useUtcTime } from "~/hooks/useUtcTime";
 import { useTimer } from "~/hooks/useTimer";
+import {
+  maybeAddSecretAircraft,
+  maybeSpawnUFO,
+  maybeAddTopGunAircraft,
+  detectSupersonicAircraft,
+  rotateMapOnSecretCallsign,
+} from "~/lib/easter-eggs";
+import { useEasterEggs } from "~/hooks/useEasterEggs";
 
 interface Airport {
   name: string;
@@ -45,12 +59,13 @@ export default function ATCPage() {
   );
   const time = useUtcTime();
   const { formattedTime, isRunning, start, stop, reset } = useTimer();
-
   const [showTimerPopup, setShowTimerPopup] = useState(false);
-
   const drawFlightPlanOnMapRef = useRef<
     ((aircraft: PositionUpdate, shouldZoom?: boolean) => void) | null
   >(null);
+
+  useEasterEggs();
+
   const setDrawFlightPlanOnMap = useCallback(
     (func: (aircraft: PositionUpdate, shouldZoom?: boolean) => void) => {
       drawFlightPlanOnMapRef.current = func;
@@ -116,6 +131,16 @@ export default function ATCPage() {
 
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 
+  const augmentedAircrafts = useMemo(() => {
+    let updated = [...aircrafts];
+    updated = maybeAddSecretAircraft(updated);
+    updated = maybeSpawnUFO(updated);
+    updated = maybeAddTopGunAircraft(updated);
+    detectSupersonicAircraft(updated);
+    rotateMapOnSecretCallsign(updated);
+    return updated;
+  }, [aircrafts]);
+
   return (
     <div
       style={{
@@ -146,7 +171,6 @@ export default function ATCPage() {
           />
         </div>
       )}
-
       <div
         style={{
           position: "absolute",
@@ -155,9 +179,11 @@ export default function ATCPage() {
           zIndex: 10000,
         }}
       >
-        <ConnectionStatusIndicator status={connectionStatus} isMobile={isMobile} />
+        <ConnectionStatusIndicator
+          status={connectionStatus}
+          isMobile={isMobile}
+        />
       </div>
-
       <div
         style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
       >
@@ -165,7 +191,7 @@ export default function ATCPage() {
           <Loading />
         ) : (
           <DynamicMapComponent
-            aircrafts={aircrafts}
+            aircrafts={augmentedAircrafts}
             airports={airports}
             onAircraftSelect={handleAircraftSelect}
             selectedWaypointIndex={selectedWaypointIndex}
@@ -175,8 +201,6 @@ export default function ATCPage() {
           />
         )}
       </div>
-
-      {/* UTC TIME + POPUP TIMER */}
       <div
         style={{
           position: "absolute",
@@ -193,7 +217,6 @@ export default function ATCPage() {
       >
         {time} UTC
       </div>
-
       {showTimerPopup && (
         <div
           style={{
@@ -264,7 +287,6 @@ export default function ATCPage() {
           </div>
         </div>
       )}
-
       {selectedAircraft && (
         <div
           style={{
